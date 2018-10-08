@@ -2,7 +2,8 @@
  *   ownCloud Android client application
  *
  *   @author David A. Velasco
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@ import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.lib.resources.files.FileUtils;
 import com.owncloud.android.ui.activity.ComponentsGetter;
 
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -35,7 +37,6 @@ import android.view.View;
 import android.view.WindowManager.LayoutParams;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  *  Dialog to input the name for a new folder to create.  
@@ -76,15 +77,15 @@ public class CreateFolderDialogFragment
         View v = inflater.inflate(R.layout.edit_box_dialog, null);
         
         // Setup layout 
-        EditText inputText = ((EditText)v.findViewById(R.id.user_input));
+        EditText inputText = v.findViewById(R.id.user_input);
         inputText.setText("");
         inputText.requestFocus();
         
         // Build the dialog  
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setView(v)
-               .setPositiveButton(R.string.common_ok, this)
-               .setNegativeButton(R.string.common_cancel, this)
+               .setPositiveButton(android.R.string.ok, this)
+               .setNegativeButton(android.R.string.cancel, this)
                .setTitle(R.string.uploader_info_dirname);
         Dialog d = builder.create();
         d.getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_STATE_VISIBLE);
@@ -100,10 +101,7 @@ public class CreateFolderDialogFragment
                         .getText().toString().trim();
             
             if (newFolderName.length() <= 0) {
-                Toast.makeText(
-                        getActivity(),
-                        R.string.filename_empty, 
-                        Toast.LENGTH_LONG).show();
+                showSnackMessage(R.string.filename_empty);
                 return;
             }
             boolean serverWithForbiddenChars = ((ComponentsGetter)getActivity()).
@@ -116,8 +114,7 @@ public class CreateFolderDialogFragment
                 } else {
                     messageId = R.string.filename_forbidden_characters;
                 }
-                Toast.makeText(getActivity(), messageId, Toast.LENGTH_LONG).show();
-
+                showSnackMessage(messageId);
                 return;
             }
             
@@ -127,5 +124,19 @@ public class CreateFolderDialogFragment
                 getFileOperationsHelper().createFolder(path, false);
         }
     }
-        
+
+    /**
+     * Show a temporary message in a Snackbar bound to the content view of the parent Activity
+     *
+     * @param messageResource       Message to show.
+     */
+    private void showSnackMessage(int messageResource) {
+        Snackbar snackbar = Snackbar.make(
+            getActivity().findViewById(R.id.coordinator_layout),
+            messageResource,
+            Snackbar.LENGTH_LONG
+        );
+        snackbar.show();
+    }
+
 }

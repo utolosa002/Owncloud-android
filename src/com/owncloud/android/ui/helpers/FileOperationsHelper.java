@@ -4,7 +4,7 @@
  *   @author masensio
  *   @author David A. Velasco
  *   @author Juan Carlos González Cabrero
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   Copyright (C) 2017 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -24,22 +24,17 @@ package com.owncloud.android.ui.helpers;
 
 import android.accounts.Account;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.net.Uri;
-import android.os.Parcelable;
 import android.support.v4.app.DialogFragment;
 import android.webkit.MimeTypeMap;
-import android.widget.Toast;
 
 import com.owncloud.android.R;
 import com.owncloud.android.authentication.AccountUtils;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.files.services.FileDownloader.FileDownloaderBinder;
 import com.owncloud.android.files.services.FileUploader.FileUploaderBinder;
-import com.owncloud.android.lib.common.network.WebdavUtils;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.lib.resources.shares.OCShare;
 import com.owncloud.android.lib.resources.shares.ShareType;
@@ -59,10 +54,10 @@ import java.util.List;
 public class FileOperationsHelper {
 
     private static final String TAG = FileOperationsHelper.class.getSimpleName();
-    
+
     private static final String FTAG_CHOOSER_DIALOG = "CHOOSER_DIALOG";
 
-    protected FileActivity mFileActivity = null;
+    private FileActivity mFileActivity = null;
 
     /// Identifier of operation in progress which result shouldn't be lost 
     private long mWaitingForOpId = Long.MAX_VALUE;
@@ -84,7 +79,7 @@ public class FileOperationsHelper {
             intentForSavedMimeType.setFlags(
                     Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             );
-            
+
             Intent intentForGuessedMimeType = null;
             if (storagePath.lastIndexOf('.') >= 0) {
                 String guessedMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
@@ -121,10 +116,16 @@ public class FileOperationsHelper {
                             )
                     );
                 } catch (ActivityNotFoundException anfe) {
-                    showNoAppForFileTypeToast(mFileActivity.getApplicationContext());
+                    mFileActivity.showSnackMessage(
+                        mFileActivity.getString(
+                            R.string.file_list_no_app_for_file_type
+                        )
+                    );
                 }
             } else {
-                showNoAppForFileTypeToast(mFileActivity.getApplicationContext());
+                mFileActivity.showSnackMessage(
+                    mFileActivity.getString(R.string.file_list_no_app_for_file_type)
+                );
             }
 
         } else {
@@ -133,38 +134,88 @@ public class FileOperationsHelper {
     }
 
     /**
-     * Displays a toast stating that no application could be found to open the file.
+     * Show dialog to allow the user to choose an app to send the private link of an {@link OCFile},
+     * or copy it to clipboard.
      *
-     * @param context the context to be able to show a toast.
+     * @param file    @param file {@link OCFile} which will be shared with internal users
      */
-    private void showNoAppForFileTypeToast(Context context) {
-        Toast.makeText(context,
-                R.string.file_list_no_app_for_file_type, Toast.LENGTH_SHORT)
-                .show();
+    public void copyOrSendPrivateLink(OCFile file) {
+
+        // Parse remoteId
+        String privateLink = file.getPrivateLink();
+
+        if (privateLink == null || privateLink.isEmpty()) {
+            mFileActivity.showSnackMessage(
+                    mFileActivity.getString(R.string.file_private_link_error)
+            );
+            return;
+        }
+
+        shareLink(privateLink);
     }
 
-
     /**
-     * Helper method to share a file via a public link. Starts a request to do it in {@link OperationsService}
-     *
-     * @param file          The file to share.
-     * @param password      Optional password to protect the public share.
+     * @param file The file to share.
+     * @param name Optional public share name
+     * @param password Optional password to protect the public share
+     * @param expirationTimeInMillis Optional expiration time
+     * @param uploadToFolderPermission Optional permissions to upload files to the folder
+     * @param permissions Optional permissions to allow or not specific actions in the folder
      */
-    public void shareFileViaLink(OCFile file, String password) {
+    public void shareFileViaLink(OCFile file,
+                                 String name,
+                                 String password,
+                                 long expirationTimeInMillis,
+                                 boolean uploadToFolderPermission,
+                                 int permissions)
+    {
+
         if (isSharedSupported()) {
             if (file != null) {
-                mFileActivity.showLoadingDialog(
-                        mFileActivity.getApplicationContext().
-                                getString(R.string.wait_a_moment)
+                mFileActivity.showLoadingDialog(R.string.wait_a_moment);
+
+                Intent createShareFileViaLink = new Intent(mFileActivity, OperationsService.class);
+                createShareFileViaLink.setAction(OperationsService.ACTION_CREATE_SHARE_VIA_LINK);
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_ACCOUNT,
+                        mFileActivity.getAccount()
                 );
-                Intent service = new Intent(mFileActivity, OperationsService.class);
-                service.setAction(OperationsService.ACTION_CREATE_SHARE_VIA_LINK);
-                service.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_REMOTE_PATH,
+                        file.getRemotePath()
+                );
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_SHARE_NAME,
+                        (name == null) ? "" : name
+                );
+
                 if (password != null && password.length() > 0) {
-                    service.putExtra(OperationsService.EXTRA_SHARE_PASSWORD, password);
+                    createShareFileViaLink.putExtra(
+                            OperationsService.EXTRA_SHARE_PASSWORD,
+                            password
+                    );
                 }
-                service.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-                mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_SHARE_EXPIRATION_DATE_IN_MILLIS,
+                        expirationTimeInMillis
+                );
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_SHARE_PUBLIC_UPLOAD,
+                        uploadToFolderPermission
+                );
+
+                createShareFileViaLink.putExtra(
+                        OperationsService.EXTRA_SHARE_PERMISSIONS,
+                        permissions
+                );
+
+                mWaitingForOpId = mFileActivity.getOperationsServiceBinder().
+                        queueNewOperation(createShareFileViaLink);
 
             } else {
                 Log_OC.e(TAG, "Trying to share a NULL OCFile");
@@ -173,37 +224,28 @@ public class FileOperationsHelper {
 
         } else {
             // Show a Message
-            Toast t = Toast.makeText(
-                    mFileActivity, mFileActivity.getString(R.string.share_link_no_support_share_api),
-                    Toast.LENGTH_LONG
+            mFileActivity.showSnackMessage(
+                mFileActivity.getString(R.string.share_link_no_support_share_api)
             );
-            t.show();
         }
     }
 
-    public void getFileWithLink(OCFile file){
-        if (isSharedSupported()) {
-            if (file != null) {
-                mFileActivity.showLoadingDialog(mFileActivity.getApplicationContext().
-                        getString(R.string.wait_a_moment));
-
-                Intent service = new Intent(mFileActivity, OperationsService.class);
-                service.setAction(OperationsService.ACTION_CREATE_SHARE_VIA_LINK);
-                service.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-                service.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-                mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
-
-            } else {
-                Log_OC.e(TAG, "Trying to share a NULL OCFile");
-            }
-        } else {
-            // Show a Message
-            Toast t = Toast.makeText(
-                    mFileActivity, mFileActivity.getString(R.string.share_link_no_support_share_api),
-                    Toast.LENGTH_LONG
+    /**
+     * Show dialog to allow the user to choose an app to send the link of an {@link OCShare},
+     * or copy it to clipboard.
+     *
+     * @param share     {@link OCShare} which link will be sent to the app chosen by the user.
+     */
+    public void copyOrSendPublicLink(OCShare share) {
+        String link = share.getShareLink();
+        if (link.length() <= 0) {
+            mFileActivity.showSnackMessage(
+                mFileActivity.getString(R.string.share_no_link_in_this_share)
             );
-            t.show();
+            return;
         }
+
+        shareLink(link);
     }
 
     /**
@@ -217,8 +259,7 @@ public class FileOperationsHelper {
     public void shareFileWithSharee(OCFile file, String shareeName, ShareType shareType, int permissions) {
         if (file != null) {
             // TODO check capability?
-            mFileActivity.showLoadingDialog(mFileActivity.getApplicationContext().
-                getString(R.string.wait_a_moment));
+            mFileActivity.showLoadingDialog(R.string.wait_a_moment);
 
             Intent service = new Intent(mFileActivity, OperationsService.class);
             service.setAction(OperationsService.ACTION_CREATE_SHARE_WITH_SHAREE);
@@ -248,37 +289,20 @@ public class FileOperationsHelper {
 
 
     /**
-     * Helper method to unshare a file publicly shared via link.
+     * Helper method to remove an existing share, no matter if public or private.
      * Starts a request to do it in {@link OperationsService}
      *
-     * @param file      The file to unshare.
+     * @param share      The {@link OCShare} to remove (unshare).
      */
-    public void unshareFileViaLink(OCFile file) {
+    public void removeShare(OCShare share) {
 
-        // Unshare the file: Create the intent
         Intent unshareService = new Intent(mFileActivity, OperationsService.class);
         unshareService.setAction(OperationsService.ACTION_UNSHARE);
+        unshareService.putExtra(OperationsService.EXTRA_SHARE_ID, share.getId());
         unshareService.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-        unshareService.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-        unshareService.putExtra(OperationsService.EXTRA_SHARE_TYPE, ShareType.PUBLIC_LINK);
-        unshareService.putExtra(OperationsService.EXTRA_SHARE_WITH, "");
 
         queueShareIntent(unshareService);
     }
-
-    public void unshareFileWithUserOrGroup(OCFile file, ShareType shareType, String userOrGroup){
-
-        // Unshare the file: Create the intent
-        Intent unshareService = new Intent(mFileActivity, OperationsService.class);
-        unshareService.setAction(OperationsService.ACTION_UNSHARE);
-        unshareService.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-        unshareService.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-        unshareService.putExtra(OperationsService.EXTRA_SHARE_TYPE, shareType);
-        unshareService.putExtra(OperationsService.EXTRA_SHARE_WITH, userOrGroup);
-
-        queueShareIntent(unshareService);
-    }
-
 
     private void queueShareIntent(Intent shareIntent){
         if (isSharedSupported()) {
@@ -286,76 +310,28 @@ public class FileOperationsHelper {
             mWaitingForOpId = mFileActivity.getOperationsServiceBinder().
                     queueNewOperation(shareIntent);
 
-            mFileActivity.showLoadingDialog(mFileActivity.getApplicationContext().
-                    getString(R.string.wait_a_moment));
+            mFileActivity.showLoadingDialog(R.string.wait_a_moment);
 
         } else {
             // Show a Message
-            Toast t = Toast.makeText(mFileActivity,
-                    mFileActivity.getString(R.string.share_link_no_support_share_api),
-                    Toast.LENGTH_LONG);
-            t.show();
-
+            mFileActivity.showSnackMessage(
+                mFileActivity.getString(R.string.share_link_no_support_share_api)
+            );
         }
     }
 
     /**
-     * Show an instance of {@link ShareType} for sharing or unsharing the {@OCFile} received as parameter.
+     * Show an instance of {@link ShareType} for sharing or unsharing the {@link OCFile} received as parameter.
      *
      * @param file  File to share or unshare.
      */
     public void showShareFile(OCFile file){
         Intent intent = new Intent(mFileActivity, ShareActivity.class);
-        intent.putExtra(mFileActivity.EXTRA_FILE, (Parcelable) file);
-        intent.putExtra(mFileActivity.EXTRA_ACCOUNT, mFileActivity.getAccount());
+        intent.putExtra(FileActivity.EXTRA_FILE, file);
+        intent.putExtra(FileActivity.EXTRA_ACCOUNT, mFileActivity.getAccount());
         mFileActivity.startActivity(intent);
 
     }
-
-
-    /**
-     * Updates a public share on a file to set its password.
-     * Starts a request to do it in {@link OperationsService}
-     *
-     * @param file          File which public share will be protected with a password.
-     * @param password      Password to set for the public link; null or empty string to clear
-     *                      the current password
-     */
-    public void setPasswordToShareViaLink(OCFile file, String password) {
-        // Set password updating share
-        Intent updateShareIntent = new Intent(mFileActivity, OperationsService.class);
-        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE);
-        updateShareIntent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-        updateShareIntent.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-        updateShareIntent.putExtra(
-                OperationsService.EXTRA_SHARE_PASSWORD,
-                (password == null) ? "" : password
-        );
-
-        queueShareIntent(updateShareIntent);
-    }
-
-
-    /**
-     * Updates a public share on a file to set its expiration date.
-     * Starts a request to do it in {@link OperationsService}
-     *
-     * @param file                      File which public share will be constrained with an expiration date.
-     * @param expirationTimeInMillis    Expiration date to set. A negative value clears the current expiration
-     *                                  date, leaving the link unrestricted. Zero makes no change.
-     */
-    public void setExpirationDateToShareViaLink(OCFile file, long expirationTimeInMillis) {
-        Intent updateShareIntent = new Intent(mFileActivity, OperationsService.class);
-        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE);
-        updateShareIntent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-        updateShareIntent.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-        updateShareIntent.putExtra(
-                OperationsService.EXTRA_SHARE_EXPIRATION_DATE_IN_MILLIS,
-                expirationTimeInMillis
-        );
-        queueShareIntent(updateShareIntent);
-    }
-
 
     /**
      * Updates a share on a file to set its access permissions.
@@ -364,9 +340,9 @@ public class FileOperationsHelper {
      * @param share                     {@link OCShare} instance which permissions will be updated.
      * @param permissions               New permissions to set. A value <= 0 makes no update.
      */
-    public void setPermissionsToShare(OCShare share, int permissions) {
+    public void setPermissionsToShareWithSharee(OCShare share, int permissions) {
         Intent updateShareIntent = new Intent(mFileActivity, OperationsService.class);
-        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE);
+        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE_WITH_SHAREE);
         updateShareIntent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
         updateShareIntent.putExtra(OperationsService.EXTRA_SHARE_ID, share.getId());
         updateShareIntent.putExtra(
@@ -377,21 +353,58 @@ public class FileOperationsHelper {
     }
 
     /**
-     * Updates a public share on a folder to set its editing permission.
+     * Updates at once all the properties of a public share on a file.
      * Starts a request to do it in {@link OperationsService}
      *
-     * @param folder                     Folder which editing permission of his public share will be modified.
-     * @param uploadPermission          New state of the permission for editing the folder shared via link.
+     * @param share                     Public share to updated.
+     * @param name                      Name to set for the link (ignored in servers < 10.0.0).
+     * @param password                  Password to set for the public link; null or empty string to clear
+     *                                  the current password. - TODO select value to leave unchanged?
+     * @param expirationTimeInMillis    Expiration date to set. A negative value clears the current expiration
+     *                                  date, leaving the link unrestricted. Zero makes no change.
+     * @param uploadToFolderPermission  New state of the permission for editing the folder shared via link.
+     *                                  Ignored if the file is not a folder. - TODO select value to leave unchanged?
+     * @param permissions               Optional permissions to allow or not specific actions in the folder
      */
-    public void setUploadPermissionsToShare(OCFile folder, boolean uploadPermission) {
+    public void updateShareViaLink(
+        OCShare share,
+        String name,
+        String password,
+        long expirationTimeInMillis,
+        boolean uploadToFolderPermission,
+        int permissions
+    ) {
+        // Set password updating share
         Intent updateShareIntent = new Intent(mFileActivity, OperationsService.class);
-        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE);
+        updateShareIntent.setAction(OperationsService.ACTION_UPDATE_SHARE_VIA_LINK);
         updateShareIntent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
-        updateShareIntent.putExtra(OperationsService.EXTRA_REMOTE_PATH, folder.getRemotePath());
+        updateShareIntent.putExtra(OperationsService.EXTRA_SHARE_ID, share.getId());
+
         updateShareIntent.putExtra(
-                OperationsService.EXTRA_SHARE_PUBLIC_UPLOAD,
-                uploadPermission
+            OperationsService.EXTRA_SHARE_NAME,
+            (name == null) ? "" : name
         );
+
+        updateShareIntent.putExtra(
+            OperationsService.EXTRA_SHARE_PASSWORD,
+                password
+        );
+
+        updateShareIntent.putExtra(
+            OperationsService.EXTRA_SHARE_EXPIRATION_DATE_IN_MILLIS,
+            expirationTimeInMillis
+        );
+
+        updateShareIntent.putExtra(
+            OperationsService.EXTRA_SHARE_PUBLIC_UPLOAD,
+            uploadToFolderPermission
+        );
+
+        updateShareIntent.putExtra(
+                OperationsService.EXTRA_SHARE_PERMISSIONS,
+                permissions
+        );
+
         queueShareIntent(updateShareIntent);
     }
 
@@ -399,7 +412,7 @@ public class FileOperationsHelper {
     /**
      * @return 'True' if the server supports the Search Users API
      */
-    public boolean isSearchUserSupportedSupported() {
+    public boolean isSearchUserSupported() {
         if (mFileActivity.getAccount() != null) {
             OwnCloudVersion serverVersion = AccountUtils.getServerVersion(mFileActivity.getAccount());
             return (serverVersion != null && serverVersion.isSearchUsersSupported());
@@ -409,7 +422,6 @@ public class FileOperationsHelper {
 
     public void sendDownloadedFile(OCFile file) {
         if (file != null) {
-            String storagePath = file.getStoragePath();
             Intent sendIntent = new Intent(android.content.Intent.ACTION_SEND);
             // set MimeType
             sendIntent.setType(file.getMimetype());
@@ -446,7 +458,6 @@ public class FileOperationsHelper {
             intent.setAction(OperationsService.ACTION_SYNC_FILE);
             intent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
             intent.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
-            intent.putExtra(OperationsService.EXTRA_SYNC_FILE_CONTENTS, true);
             mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(intent);
 
         } else {
@@ -454,35 +465,59 @@ public class FileOperationsHelper {
             intent.setAction(OperationsService.ACTION_SYNC_FOLDER);
             intent.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
             intent.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
+            intent.putExtra(
+                OperationsService.EXTRA_SYNC_REGULAR_FILES,
+                true
+            );
             mFileActivity.startService(intent);
-
         }
     }
 
-    public void toggleFavorites(Collection<OCFile> files, boolean isFavorite){
+    public void toggleAvailableOffline(Collection<OCFile> files, boolean isAvailableOffline){
         for (OCFile file: files) {
-            toggleFavorite(file, isFavorite);
+            toggleAvailableOffline(file, isAvailableOffline);
         }
     }
 
-    public void toggleFavorite(OCFile file, boolean isFavorite) {
-        file.setFavorite(isFavorite);
-        mFileActivity.getStorageManager().saveFile(file);
+    public void toggleAvailableOffline(OCFile file, boolean isAvailableOffline) {
+        if (OCFile.AvailableOfflineStatus.AVAILABLE_OFFLINE_PARENT == file.getAvailableOfflineStatus()) {
+            /// files descending of an av-offline folder can't be toggled
+            mFileActivity.showSnackMessage(
+                mFileActivity.getString(R.string.available_offline_inherited_msg)
+            );
 
-        /// register the OCFile instance in the observer service to monitor local updates
-        FileObserverService.observeFile(
-                mFileActivity,
-                file,
-                mFileActivity.getAccount(),
-                isFavorite
-        );
+        } else {
+            /// update local property, for file and all its descendents (if folder)
+            OCFile.AvailableOfflineStatus targetAvailableOfflineStatus = isAvailableOffline ?
+                OCFile.AvailableOfflineStatus.AVAILABLE_OFFLINE :
+                OCFile.AvailableOfflineStatus.NOT_AVAILABLE_OFFLINE;
+            file.setAvailableOfflineStatus(targetAvailableOfflineStatus);
+            boolean success = mFileActivity.getStorageManager().saveLocalAvailableOfflineStatus(file);
 
-        /// immediate content synchronization
-        if (file.isFavorite()) {
-            syncFile(file);
+            if (success) {
+                /// register the OCFile instance in the observer service to monitor local updates
+                FileObserverService.observeFile(
+                    mFileActivity,
+                    file,
+                    mFileActivity.getAccount(),
+                    isAvailableOffline
+                );
+
+                /// immediate content synchronization
+                if (OCFile.AvailableOfflineStatus.AVAILABLE_OFFLINE == file.getAvailableOfflineStatus()) {
+                    syncFile(file);
+                } else {
+                    cancelTransference(file);
+                }
+            } else {
+                /// unexpected error
+                mFileActivity.showSnackMessage(
+                    mFileActivity.getString(R.string.common_error_unknown)
+                );
+            }
         }
     }
-    
+
     public void renameFile(OCFile file, String newFilename) {
         // RenameFile
         Intent service = new Intent(mFileActivity, OperationsService.class);
@@ -491,8 +526,8 @@ public class FileOperationsHelper {
         service.putExtra(OperationsService.EXTRA_REMOTE_PATH, file.getRemotePath());
         service.putExtra(OperationsService.EXTRA_NEWNAME, newFilename);
         mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
-        
-        mFileActivity.showLoadingDialog(mFileActivity.getString(R.string.wait_a_moment));
+
+        mFileActivity.showLoadingDialog(R.string.wait_a_moment);
     }
 
 
@@ -513,8 +548,8 @@ public class FileOperationsHelper {
             service.putExtra(OperationsService.EXTRA_REMOVE_ONLY_LOCAL, onlyLocalCopy);
             mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
         }
-        
-        mFileActivity.showLoadingDialog(mFileActivity.getString(R.string.wait_a_moment));
+
+        mFileActivity.showLoadingDialog(R.string.wait_a_moment);
     }
 
 
@@ -526,8 +561,8 @@ public class FileOperationsHelper {
         service.putExtra(OperationsService.EXTRA_REMOTE_PATH, remotePath);
         service.putExtra(OperationsService.EXTRA_CREATE_FULL_PATH, createFullPath);
         mWaitingForOpId =  mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
-        
-        mFileActivity.showLoadingDialog(mFileActivity.getString(R.string.wait_a_moment));
+
+        mFileActivity.showLoadingDialog(R.string.wait_a_moment);
     }
 
     /**
@@ -570,7 +605,7 @@ public class FileOperationsHelper {
             service.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
             mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
         }
-        mFileActivity.showLoadingDialog(mFileActivity.getString(R.string.wait_a_moment));
+        mFileActivity.showLoadingDialog(R.string.wait_a_moment);
     }
 
     /**
@@ -588,7 +623,7 @@ public class FileOperationsHelper {
             service.putExtra(OperationsService.EXTRA_ACCOUNT, mFileActivity.getAccount());
             mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
         }
-        mFileActivity.showLoadingDialog(mFileActivity.getString(R.string.wait_a_moment));
+        mFileActivity.showLoadingDialog(R.string.wait_a_moment);
     }
 
     public long getOpIdWaitingFor() {
@@ -623,8 +658,43 @@ public class FileOperationsHelper {
         service.putExtra(OperationsService.EXTRA_ACCOUNT, account);
         mWaitingForOpId = mFileActivity.getOperationsServiceBinder().queueNewOperation(service);
 
-        mFileActivity.showLoadingDialog(
-            mFileActivity.getString(R.string.wait_checking_credentials)
+        mFileActivity.showLoadingDialog(R.string.wait_checking_credentials);
+    }
+
+    /**
+     * Share link with other apps
+     *
+     * @param link link to share
+     */
+    private void shareLink(String link) {
+
+        Intent intentToShareLink = new Intent(Intent.ACTION_SEND);
+        intentToShareLink.putExtra(Intent.EXTRA_TEXT, link);
+        intentToShareLink.setType("text/plain");
+        String username = com.owncloud.android.lib.common.accounts.AccountUtils.getUsernameForAccount(
+                mFileActivity.getAccount()
         );
+        if (username != null) {
+            intentToShareLink.putExtra(
+                    Intent.EXTRA_SUBJECT,
+                    mFileActivity.getString(
+                            R.string.subject_user_shared_with_you,
+                            username,
+                            mFileActivity.getFile().getFileName()
+                    )
+            );
+        } else {
+            intentToShareLink.putExtra(
+                    Intent.EXTRA_SUBJECT,
+                    mFileActivity.getString(
+                            R.string.subject_shared_with_you,
+                            mFileActivity.getFile().getFileName()
+                    )
+            );
+        }
+
+        String[] packagesToExclude = new String[]{mFileActivity.getPackageName()};
+        DialogFragment chooserDialog = ShareLinkToDialog.newInstance(intentToShareLink, packagesToExclude);
+        chooserDialog.show(mFileActivity.getSupportFragmentManager(), FTAG_CHOOSER_DIALOG);
     }
 }

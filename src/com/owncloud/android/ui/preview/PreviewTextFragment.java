@@ -1,7 +1,8 @@
 /**
  *   ownCloud Android client application
  *
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -111,9 +112,9 @@ public class PreviewTextFragment extends FileFragment {
 
 
         View ret = inflater.inflate(R.layout.preview_text_fragment, container, false);
-        mProgressBar = (ProgressBar) ret.findViewById(R.id.syncProgressBar);
+        mProgressBar = ret.findViewById(R.id.syncProgressBar);
         DisplayUtils.colorPreLollipopHorizontalProgressBar(mProgressBar);
-        mTextPreview = (TextView) ret.findViewById(R.id.text_preview);
+        mTextPreview = ret.findViewById(R.id.text_preview);
 
         return ret;
     }
@@ -251,7 +252,7 @@ public class PreviewTextFragment extends FileFragment {
             LoadingDialog loading = null;
             if (frag == null) {
                 // Construct dialog
-                loading = new LoadingDialog(getResources().getString(R.string.wait_a_moment));
+                loading = LoadingDialog.newInstance(R.string.wait_a_moment, false);
                 FragmentManager fm = getActivity().getSupportFragmentManager();
                 FragmentTransaction ft = fm.beginTransaction();
                 loading.show(ft, DIALOG_WAIT_TAG);
@@ -297,7 +298,7 @@ public class PreviewTextFragment extends FileFragment {
                     mContainerActivity,
                     getActivity()
             );
-            mf.filter(menu);
+            mf.filter(menu, false, false);
         }
 
         // additional restriction for this fragment
@@ -309,6 +310,12 @@ public class PreviewTextFragment extends FileFragment {
 
         // additional restriction for this fragment
         item = menu.findItem(R.id.action_move);
+        if (item != null) {
+            item.setVisible(false);
+            item.setEnabled(false);
+        }
+
+        item = menu.findItem(R.id.action_copy);
         if (item != null) {
             item.setVisible(false);
             item.setEnabled(false);
@@ -333,16 +340,14 @@ public class PreviewTextFragment extends FileFragment {
             item.setEnabled(false);
         }
 
-        Boolean dualPane = getResources().getBoolean(R.bool.large_land_layout);
-
         item = menu.findItem(R.id.action_switch_view);
-        if (item != null && !dualPane){
+        if (item != null){
             item.setVisible(false);
             item.setEnabled(false);
         }
 
         item = menu.findItem(R.id.action_sort);
-        if (item != null && !dualPane) {
+        if (item != null) {
             item.setVisible(false);
             item.setEnabled(false);
         }
@@ -379,12 +384,12 @@ public class PreviewTextFragment extends FileFragment {
                 mContainerActivity.getFileOperationsHelper().syncFile(getFile());
                 return true;
             }
-            case R.id.action_favorite_file:{
-                mContainerActivity.getFileOperationsHelper().toggleFavorite(getFile(), true);
+            case R.id.action_set_available_offline:{
+                mContainerActivity.getFileOperationsHelper().toggleAvailableOffline(getFile(), true);
                 return true;
             }
-            case R.id.action_unfavorite_file:{
-                mContainerActivity.getFileOperationsHelper().toggleFavorite(getFile(), false);
+            case R.id.action_unset_available_offline:{
+                mContainerActivity.getFileOperationsHelper().toggleAvailableOffline(getFile(), false);
                 return true;
             }
             default:

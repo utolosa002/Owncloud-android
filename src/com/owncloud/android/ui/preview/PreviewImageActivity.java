@@ -2,7 +2,9 @@
  *   ownCloud Android client application
  *
  *   @author David A. Velasco
- *   Copyright (C) 2016  ownCloud GmbH.
+ *   @author David González Verdugo
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -31,7 +33,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.v4.view.GravityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -39,7 +41,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 
-import com.ortiz.touch.ExtendedViewPager;
 import com.owncloud.android.R;
 import com.owncloud.android.authentication.AccountUtils;
 import com.owncloud.android.datamodel.FileDataStorageManager;
@@ -57,6 +58,7 @@ import com.owncloud.android.operations.SynchronizeFileOperation;
 import com.owncloud.android.ui.activity.FileActivity;
 import com.owncloud.android.ui.activity.FileDisplayActivity;
 import com.owncloud.android.ui.fragment.FileFragment;
+import com.owncloud.android.utils.Extras;
 
 
 /**
@@ -70,11 +72,12 @@ public class PreviewImageActivity extends FileActivity implements
     
     private static final int INITIAL_HIDE_DELAY = 0; // immediate hide
 
-    private ExtendedViewPager mViewPager;
+    private ViewPager mViewPager;
     private PreviewImagePagerAdapter mPreviewImagePagerAdapter;
     private int mSavedPosition = 0;
     private boolean mHasSavedPosition = false;
-    
+
+    private LocalBroadcastManager mLocalBroadcastManager;
     private DownloadFinishReceiver mDownloadFinishReceiver;
     
     private View mFullScreenAnchorView;
@@ -87,9 +90,6 @@ public class PreviewImageActivity extends FileActivity implements
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.preview_image_activity);
-
-        // Navigation Drawer
-        initDrawer();
 
         // ActionBar
         ActionBar actionBar = getSupportActionBar();
@@ -110,10 +110,10 @@ public class PreviewImageActivity extends FileActivity implements
                 ActionBar actionBar = getSupportActionBar();
                 if (visible) {
                     actionBar.show();
-                    mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                    setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
                 } else {
                     actionBar.hide();
-                    mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                    setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 }
             }
         });
@@ -121,6 +121,8 @@ public class PreviewImageActivity extends FileActivity implements
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(getResources().getColor(R.color.owncloud_blue_dark_transparent));
         }
+
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
     }
 
@@ -143,7 +145,7 @@ public class PreviewImageActivity extends FileActivity implements
             /*, MainApp.getOnlyOnDevice()*/
         );
 
-        mViewPager = (ExtendedViewPager) findViewById(R.id.fragmentPager);
+        mViewPager = findViewById(R.id.fragmentPager);
         int position = mHasSavedPosition ? mSavedPosition :
                 mPreviewImagePagerAdapter.getFilePosition(getFile());
         position = (position >= 0) ? position : 0;
@@ -262,17 +264,17 @@ public class PreviewImageActivity extends FileActivity implements
                 mUploaderBinder = null;
             }
         }
-    };    
-    
-    
+    }
+
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         boolean returnValue;
         
         switch(item.getItemId()){
         case android.R.id.home:
-            if (mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
-                mDrawerLayout.closeDrawer(GravityCompat.START);
+            if (isDrawerOpen()) {
+                closeDrawer();
             } else {
                 backToDisplayActivity();
             }
@@ -294,13 +296,13 @@ public class PreviewImageActivity extends FileActivity implements
         
         IntentFilter filter = new IntentFilter(FileDownloader.getDownloadFinishMessage());
         filter.addAction(FileDownloader.getDownloadAddedMessage());
-        registerReceiver(mDownloadFinishReceiver, filter);
+        mLocalBroadcastManager.registerReceiver(mDownloadFinishReceiver, filter);
     }
 
     @Override
     public void onPause() {
         if (mDownloadFinishReceiver != null){
-            unregisterReceiver(mDownloadFinishReceiver);
+            mLocalBroadcastManager.unregisterReceiver(mDownloadFinishReceiver);
             mDownloadFinishReceiver = null;
         }
         
@@ -338,7 +340,7 @@ public class PreviewImageActivity extends FileActivity implements
 
             OCFile currentFile = mPreviewImagePagerAdapter.getFileAt(position);
             getSupportActionBar().setTitle(currentFile.getFileName());
-            mDrawerToggle.setDrawerIndicatorEnabled(false);
+            setDrawerIndicatorEnabled(false);
             if (!mPreviewImagePagerAdapter.pendingErrorAt(position)) {
                 getFileOperationsHelper().syncFile(currentFile);
             }
@@ -353,7 +355,7 @@ public class PreviewImageActivity extends FileActivity implements
             getHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    onPageSelected(fPosition);;
+                    onPageSelected(fPosition);
                 }
             });
         }
@@ -395,8 +397,8 @@ public class PreviewImageActivity extends FileActivity implements
     private class DownloadFinishReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String accountName = intent.getStringExtra(FileDownloader.ACCOUNT_NAME);
-            String downloadedRemotePath = intent.getStringExtra(FileDownloader.EXTRA_REMOTE_PATH);
+            String accountName = intent.getStringExtra(Extras.EXTRA_ACCOUNT_NAME);
+            String downloadedRemotePath = intent.getStringExtra(Extras.EXTRA_REMOTE_PATH);
             if (getAccount().name.equals(accountName) && 
                     downloadedRemotePath != null) {
 
@@ -404,10 +406,9 @@ public class PreviewImageActivity extends FileActivity implements
                 mPreviewImagePagerAdapter.onDownloadEvent(
                     file,
                     intent.getAction(),
-                    intent.getBooleanExtra(FileDownloader.EXTRA_DOWNLOAD_RESULT, false)
+                    intent.getBooleanExtra(Extras.EXTRA_DOWNLOAD_RESULT, false)
                 );
             }
-            removeStickyBroadcast(intent);
         }
 
     }

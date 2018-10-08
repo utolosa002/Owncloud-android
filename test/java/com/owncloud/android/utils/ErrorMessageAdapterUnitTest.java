@@ -26,6 +26,7 @@ import android.content.res.Resources;
 import com.owncloud.android.R;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.operations.RemoveFileOperation;
+import com.owncloud.android.ui.errorhandling.ErrorMessageAdapter;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,7 +67,7 @@ public class ErrorMessageAdapterUnitTest {
             .thenReturn(MOCK_TO_DELETE);
 
         // ... when method under test is called ...
-        String errorMessage = ErrorMessageAdapter.getErrorCauseMessage(
+        String errorMessage = ErrorMessageAdapter.getResultMessage(
             new RemoteOperationResult(RemoteOperationResult.ResultCode.FORBIDDEN),
             new RemoveFileOperation(PATH_TO_DELETE, false),
             mMockResources

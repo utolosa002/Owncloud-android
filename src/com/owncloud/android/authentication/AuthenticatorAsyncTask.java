@@ -26,7 +26,7 @@ import android.os.AsyncTask;
 
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
-import com.owncloud.android.lib.common.OwnCloudCredentials;
+import com.owncloud.android.lib.common.authentication.OwnCloudCredentials;
 import com.owncloud.android.lib.common.network.RedirectionPath;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.ExistenceCheckRemoteOperation;
@@ -67,22 +67,36 @@ public class AuthenticatorAsyncTask  extends AsyncTask<Object, Void, RemoteOpera
             // Operation - try credentials
             ExistenceCheckRemoteOperation operation = new ExistenceCheckRemoteOperation(
                     REMOTE_PATH,
-                    mContext,
                     SUCCESS_IF_ABSENT
             );
             result = operation.execute(client);
 
+            String targetUrlAfterPermanentRedirection = null;
             if (operation.wasRedirected()) {
                 RedirectionPath redirectionPath = operation.getRedirectionPath();
-                String permanentLocation = redirectionPath.getLastPermanentLocation();
-                result.setLastPermanentLocation(permanentLocation);
+                targetUrlAfterPermanentRedirection = redirectionPath.getLastPermanentLocation();
             }
 
             // Operation - get display name
             if (result.isSuccess()) {
                 GetRemoteUserInfoOperation remoteUserNameOperation = new GetRemoteUserInfoOperation();
+                if (targetUrlAfterPermanentRedirection != null) {
+                    // we can't assume that any subpath of the domain is correctly redirected; ugly stuff
+                    client = OwnCloudClientFactory.createOwnCloudClient(
+                        Uri.parse(AccountUtils.trimWebdavSuffix(
+                            targetUrlAfterPermanentRedirection
+                        )),
+                        mContext,
+                        true
+                    );
+                    client.setCredentials(credentials);
+                }
                 result = remoteUserNameOperation.execute(client);
             }
+
+            // let the caller knows what is real URL that should be accessed for the account
+            // being authenticated if the initial URL is being redirected permanently (HTTP code 301)
+            result.setLastPermanentLocation(targetUrlAfterPermanentRedirection);
 
         } else {
             result = new RemoteOperationResult(RemoteOperationResult.ResultCode.UNKNOWN_ERROR);

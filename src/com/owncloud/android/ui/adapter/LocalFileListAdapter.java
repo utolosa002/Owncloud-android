@@ -2,8 +2,9 @@
  *   ownCloud Android client application
  *
  *   @author David A. Velasco
+ *   @author Christian Schabesberger
  *   Copyright (C) 2011  Bartek Przybylski
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -20,10 +21,7 @@
  */
 package com.owncloud.android.ui.adapter;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.util.Arrays;
-import java.util.Comparator;
+import com.owncloud.android.datamodel.ThumbnailsCacheManager;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -42,6 +40,11 @@ import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.utils.BitmapUtils;
 import com.owncloud.android.utils.DisplayUtils;
 import com.owncloud.android.utils.MimetypeIconUtil;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * This Adapter populates a ListView with all files and directories contained
@@ -105,16 +108,16 @@ public class LocalFileListAdapter extends BaseAdapter implements ListAdapter {
         if (mFiles != null && mFiles.length > position) {
             File file = mFiles[position];
             
-            TextView fileName = (TextView) view.findViewById(R.id.Filename);
+            TextView fileName = view.findViewById(R.id.Filename);
             String name = file.getName();
             fileName.setText(name);
             
-            ImageView fileIcon = (ImageView) view.findViewById(R.id.thumbnail);
+            ImageView fileIcon = view.findViewById(R.id.thumbnail);
 
             /** Cancellation needs do be checked and done before changing the drawable in fileIcon, or
-             * {@link ThumbnailsCacheManager#cancelPotentialWork} will NEVER cancel any task.
+             * {@link ThumbnailsCacheManager#cancelPotentialThumbnailWork} will NEVER cancel any task.
              **/
-            boolean allowedToCreateNewThumbnail = (ThumbnailsCacheManager.cancelPotentialWork(file, fileIcon));
+            boolean allowedToCreateNewThumbnail = (ThumbnailsCacheManager.cancelPotentialThumbnailWork(file, fileIcon));
 
             if (!file.isDirectory()) {
                 fileIcon.setImageResource(R.drawable.file);
@@ -123,10 +126,10 @@ public class LocalFileListAdapter extends BaseAdapter implements ListAdapter {
             }
             fileIcon.setTag(file.hashCode());
 
-            TextView fileSizeV = (TextView) view.findViewById(R.id.file_size);
-            TextView fileSizeSeparatorV = (TextView) view.findViewById(R.id.file_separator);
-            TextView lastModV = (TextView) view.findViewById(R.id.last_mod);
-            ImageView checkBoxV = (ImageView) view.findViewById(R.id.custom_checkbox);
+            TextView fileSizeV = view.findViewById(R.id.file_size);
+            TextView fileSizeSeparatorV = view.findViewById(R.id.file_separator);
+            TextView lastModV = view.findViewById(R.id.last_mod);
+            ImageView checkBoxV = view.findViewById(R.id.custom_checkbox);
             lastModV.setVisibility(View.VISIBLE);
             lastModV.setText(DisplayUtils.getRelativeTimestamp(mContext, file.lastModified()));
 
@@ -162,9 +165,9 @@ public class LocalFileListAdapter extends BaseAdapter implements ListAdapter {
                             final ThumbnailsCacheManager.ThumbnailGenerationTask task =
                                     new ThumbnailsCacheManager.ThumbnailGenerationTask(fileIcon);
                             thumbnail = ThumbnailsCacheManager.mDefaultImg;
-                            final ThumbnailsCacheManager.AsyncDrawable asyncDrawable =
-                                new ThumbnailsCacheManager.AsyncDrawable(
-                                    mContext.getResources(), 
+                            final ThumbnailsCacheManager.AsyncThumbnailDrawable asyncDrawable =
+                                new ThumbnailsCacheManager.AsyncThumbnailDrawable(
+                                    mContext.getResources(),
                                     thumbnail, 
                                     task
                                 );
@@ -185,8 +188,7 @@ public class LocalFileListAdapter extends BaseAdapter implements ListAdapter {
             }
 
             // not GONE; the alignment changes; ugly way to keep it
-            view.findViewById(R.id.localFileIndicator).setVisibility(View.INVISIBLE);   
-            view.findViewById(R.id.favoriteIcon).setVisibility(View.GONE);
+            view.findViewById(R.id.localFileIndicator).setVisibility(View.INVISIBLE);
             
             view.findViewById(R.id.sharedIcon).setVisibility(View.GONE);
         }

@@ -21,6 +21,9 @@
 
 package com.owncloud.android.ui.fragment;
 
+import android.accounts.Account;
+
+import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.lib.resources.shares.OCShare;
 
 /**
@@ -28,14 +31,18 @@ import com.owncloud.android.lib.resources.shares.OCShare;
  * fragment to allow an interaction in fragments handling {@link OCShare}s
  * to be communicated to the parent activity and potentially other fragments
  * contained in that activity.
- * <p/>
+ *
  * See the Android Training lesson <a href=
  * "http://developer.android.com/training/basics/fragments/communicating.html"
  * >Communicating with Other Fragments</a> for more information.
  */
 public interface ShareFragmentListener {
+    void copyOrSendPrivateLink(OCFile file);
     void showSearchUsersAndGroups();
-    void showEditShare(OCShare share);
-    void refreshUsersOrGroupsListFromServer();
-    void unshareWith(OCShare share);
+    void showEditPrivateShare(OCShare share);
+    void refreshSharesFromServer();
+    void removeShare(OCShare share);
+    void showAddPublicShare(String defaultLinkName);
+    void showEditPublicShare(OCShare share);
+    void copyOrSendPublicLink(OCShare share);
 }

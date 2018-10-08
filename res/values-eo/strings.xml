@@ -12,6 +12,7 @@
   <string name="actionbar_see_details">Detaloj</string>
   <string name="actionbar_send_file">Sendi</string>
   <string name="actionbar_sort">Ordigi</string>
+  <string name="actionbar_descending">Malsuprenirece</string>
   <string name="actionbar_sort_title">Ordigi laŭ</string>
   <!--TODO re-enable when "Accounts" is available in Navigation Drawer-->
   <!--<string name="drawer_item_accounts">Accounts</string>-->
@@ -22,12 +23,12 @@
   <string name="drawer_item_uploads_list">Alŝutoj</string>
   <string name="drawer_close">Fermi</string>
   <string name="drawer_open">Malfermi</string>
+  <string name="drawer_help">Helpo</string>
   <string name="prefs_category_general">Ĝeneralo</string>
   <string name="prefs_category_more">Pli</string>
+  <string name="prefs_category_security">Sekuro</string>
   <string name="prefs_accounts">Kontoj</string>
   <string name="prefs_manage_accounts">Administri kontojn</string>
-  <string name="prefs_instant_upload">Tujaj bildalŝutoj</string>
-  <string name="prefs_instant_video_upload">Tujaj videalŝutoj</string>
   <string name="prefs_log_delete_history_button">Forviŝi historion</string>
   <string name="prefs_help">Helpo</string>
   <string name="prefs_recommend">Rekomendi al amiko</string>
@@ -36,7 +37,7 @@
   <string name="auth_password">Pasvorto</string>
   <string name="auth_register">Ĉu nova je %1$s?</string>
   <string name="sync_string_files">Dosieroj</string>
-  <string name="setup_btn_connect">Konekti</string>
+  <string name="setup_btn_login">Konekti</string>
   <string name="uploader_btn_upload_text">Alŝuti</string>
   <string name="uploader_wrn_no_account_title">Neniu konto troviĝis</string>
   <string name="uploader_wrn_no_account_setup_btn_text">Agordi</string>
@@ -44,7 +45,6 @@
   <string name="file_list_seconds_ago">sekundoj antaŭe</string>
   <string name="file_list_empty">Nenio estas ĉi tie. Alŝutu ion!</string>
   <string name="file_list_loading">Ŝargante...</string>
-  <string name="file_list_no_app_for_file_type">Neniu aplikaĵo troviĝis por la dosiertipo!</string>
   <string name="local_file_list_empty">Estas neniu dosiero en ĉi tiu dosierujo.</string>
   <string name="file_list_folder">dosierujo</string>
   <string name="file_list_folders">dosierujoj</string>
@@ -83,6 +83,7 @@
   <string name="uploader_upload_failed_ticker">Alŝuto malsukcesis</string>
   <string name="uploader_upload_failed_content_single">Alŝuto de %1s ne eblis plenumiĝi</string>
   <string name="uploader_upload_failed_credentials_error">Alŝuto malsukcesis, vi devas ensaluti ree</string>
+  <string name="uploader_upload_text_filename_hint">Dosiernomo</string>
   <string name="uploads_view_title">Alŝutoj</string>
   <string name="uploads_view_group_current_uploads">Nuna</string>
   <string name="uploads_view_group_finished_uploads">Alŝutita</string>
@@ -127,9 +128,7 @@
   <string name="auth_testing_connection">Provante konekton</string>
   <string name="auth_not_configured_title">Malĝuste formita servilo-agordo</string>
   <string name="auth_unknown_error_title">Nekonata eraro okazis</string>
-  <string name="auth_unknown_host_title">Ne eblis trovi gastigon</string>
   <string name="auth_incorrect_path_title">Apero de servilo ne troviĝis</string>
-  <string name="auth_timeout_title">La servilo tro malfruis por respondi</string>
   <string name="auth_incorrect_address_title">Malĝusta formo de serviladreso</string>
   <string name="auth_ssl_general_error_title">SSL-ekigo malsukcesis</string>
   <string name="auth_bad_oc_version_title">Nerekonita eldono de servilo</string>
@@ -145,6 +144,7 @@
   <string name="confirmation_remove_file_alert">Ĉu vi vere volas forigi %1$s?</string>
   <string name="confirmation_remove_folder_alert">Ĉu vi vere volas forigi %1$s kaj ĝia enhavo?</string>
   <string name="confirmation_remove_local">Nur loka</string>
+  <string name="confirmation_remove_public_share_message">Ĉu vi vere volas forigi %1$s?</string>
   <string name="remove_success_msg">Forigo sukcesis</string>
   <string name="remove_fail_msg">Forigo ne eblis plenumiĝi</string>
   <string name="rename_dialog_title">Enigu novan nomon</string>
@@ -162,8 +162,6 @@
   <string name="activity_chooser_title">Sendi ligilon al...</string>
   <string name="wait_for_tmp_copy_from_private_storage">Kopiante dosieron el malpublika memoro</string>
   <string name="oauth_check_onoff">Ensaluti per oAuth2</string>
-  <string name="oauth_login_connection">Konektante al oAuth2-servilo...</string>
-  <string name="ssl_validator_header">La idento de la ejo ne povis kontroliĝi</string>
   <string name="ssl_validator_reason_cert_not_trusted">- La servila atestilo ne fidindas</string>
   <string name="ssl_validator_reason_cert_expired">- La servila atestilo eksvalidiĝis</string>
   <string name="ssl_validator_reason_cert_not_yet_valid">- La servila atestilo tro junas</string>
@@ -195,13 +193,13 @@
   <string name="preview_image_description">Antaŭvido de bildo</string>
   <string name="preview_image_error_unknown_format">Ĉi tiu bildo ne povas montriĝi</string>
   <string name="error__upload__local_file_not_copied">%1$s ne povis kopiiĝi al la loka dosierujo %2$s</string>
-  <string name="prefs_instant_upload_path_title">Alŝutovojo</string>
   <string name="share_link_password_title">Enigu pasvorton</string>
   <string name="share_link_empty_password">Vi devas enigi pasvorton</string>
   <string name="activity_chooser_send_file_title">Sendi</string>
   <string name="copy_link">Kopii ligilon</string>
   <string name="clipboard_text_copied">Kopiita en la tondejon</string>
   <string name="network_error_socket_exception">Eraro okazis dum konekto al la servilo.</string>
+  <string name="network_error_socket_timeout_exception">La servilo tro malfruis por respondi</string>
   <string name="forbidden_permissions">Vi ne permesatas %s</string>
   <string name="forbidden_permissions_rename">por alinomigi ĉi tiun dosieron</string>
   <string name="forbidden_permissions_delete">por forigi ĉi tiun dosieron</string>
@@ -213,6 +211,7 @@
   <string name="downloader_download_file_not_found">La dosiero ne plu disponeblas en la servilo</string>
   <string name="prefs_category_accounts">Kontoj</string>
   <string name="prefs_add_account">Aldoni konton</string>
+  <string name="drawer_manage_accounts">Administri kontojn</string>
   <string name="actionbar_logger">Protokoloj</string>
   <string name="log_send_history_button">Sendi historion</string>
   <string name="log_send_no_mail_app">Neniu aplikaĵo por sendi protokolojn troviĝas. Bonvolu instali retpoŝtaplikaĵon.</string>
@@ -233,9 +232,6 @@
   <string name="copy_file_invalid_overwrite">La dosiero jam ekzistas en la cela dosierujo</string>
   <string name="copy_file_error">Eraro okazis, dum provo kopii ĉi tiun dosieron aŭ dosierujon</string>
   <string name="forbidden_permissions_copy">por kopii ĉi tiun dosieron</string>
-  <string name="prefs_category_instant_uploading">Tujaj alŝutoj</string>
-  <string name="prefs_category_details">Detaloj</string>
-  <string name="prefs_instant_video_upload_path_title">Videalŝutovojo</string>
   <string name="sync_folder_failed_content">Sinkronigo de dosierujo %1$s ne povis plenumiĝi</string>
   <string name="shared_subject_header">kunhavata</string>
   <string name="with_you_subject_header">kun vi</string>
@@ -253,21 +249,20 @@
   <string name="file_list__footer__files">%1$d dosieroj</string>
   <string name="file_list__footer__files_and_folder">%1$d dosieroj, 1 dosierujo</string>
   <string name="file_list__footer__files_and_folders">%1$d dosieroj, %2$d dosierujoj</string>
-  <string name="prefs_instant_behaviour_dialogTitle">Origina dosiero estos...</string>
-  <string name="prefs_instant_behaviour_title">Origina dosiero estos...</string>
+  <string name="prefs_camera_upload_behaviour_dialogTitle">Origina dosiero estos...</string>
+  <string name="prefs_camera_upload_behaviour_title">Origina dosiero estos...</string>
   <string name="upload_copy_files">Kopii dosieron</string>
   <string name="upload_move_files">Movi dosieron</string>
   <string name="pref_behaviour_entries_keep_file">konservita en origina dosierujo</string>
   <string name="pref_behaviour_entries_move">movita al aplikaĵa dosierujo</string>
-  <string name="share_dialog_title">Kunhavigo</string>
-  <string name="share_with_user_section_title">Kunhavigi kun uzantoj kaj grupoj</string>
+  <string name="share_dialog_title">Kunhavigi</string>
   <string name="share_no_users">Nenio da datumoj kunhaviĝis kun uzantoj ankoraŭ</string>
   <string name="share_add_user_or_group">Aldoni uzanton aŭ grupon</string>
-  <string name="share_via_link_section_title">Kunhavigi ligilon</string>
-  <string name="share_via_link_expiration_date_label">Agordi limdaton</string>
-  <string name="share_via_link_password_label">Protekti per pasvorto</string>
+  <string name="share_cancel_public_link_button">Nuligi</string>
+  <string name="share_confirm_public_link_button">Konservi</string>
+  <string name="share_via_link_expiration_date_label">Eksvalidiĝo</string>
+  <string name="share_via_link_password_label">Pasvorto</string>
   <string name="share_via_link_password_title">Sekurigita</string>
-  <string name="share_via_link_edit_permission_label">Permesi redakton</string>
   <string name="share_get_public_link_button">Ekhavi ligilon</string>
   <string name="share_search">Serĉi</string>
   <string name="search_users_and_groups_hint">Serĉi uzantojn kaj grupojn</string>
@@ -284,4 +279,5 @@
   <string name="manage_space_title">Administri spacon</string>
   <string name="manage_space_clear_data">Forviŝi datumojn</string>
   <string name="manage_space_error">Kelkaj dosieroj ne povis foriĝi.</string>
+  <!--Welcome to oC intro features-->
 </resources>

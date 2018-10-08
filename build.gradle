@@ -8,55 +8,82 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.1.3'
+        classpath 'com.android.tools.build:gradle:3.1.2'
     }
 }
 
 apply plugin: 'com.android.application'
 
 ext {
-    supportLibraryVersion = '23.1.1'
+    supportLibraryVersion = '27.1.1'
 }
 
 repositories {
     jcenter()
+    google()
+
+    maven {
+        url "https://jitpack.io"
+    }
 
     flatDir {
         dirs 'libs'
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force "com.android.support:support-annotations:${supportLibraryVersion}"
+    }
+}
+
 dependencies {
     /// dependencies for app building
-    compile name: 'touch-image-view'
-    compile project(':owncloud-android-library')
-    compile "com.android.support:support-v4:${supportLibraryVersion}"
-    compile "com.android.support:design:${supportLibraryVersion}"
-    compile 'com.jakewharton:disklrucache:2.0.2'
-    compile "com.android.support:appcompat-v7:${supportLibraryVersion}"
-    compile 'com.getbase:floatingactionbutton:1.10.1'
-
+    implementation project(':owncloud-android-library')
+    implementation "com.android.support:support-v4:${supportLibraryVersion}"
+    implementation "com.android.support:design:${supportLibraryVersion}"
+    implementation 'com.jakewharton:disklrucache:2.0.2'
+    implementation 'com.google.android.exoplayer:exoplayer:r2.2.0'
+    implementation 'com.andrognito.patternlockview:patternlockview:1.0.0'
+    implementation "com.android.support:appcompat-v7:${supportLibraryVersion}"
+    implementation 'com.getbase:floatingactionbutton:1.10.1'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation "com.android.support:customtabs:${supportLibraryVersion}"
+    implementation group: 'commons-io', name: 'commons-io', version: '2.5'
 
     /// dependencies for local unit tests
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:1.10.19'
-
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-core:1.10.19'
 
     /// dependencies for instrumented tests
     // JUnit4 Rules
-    androidTestCompile 'com.android.support.test:rules:0.5'
+    androidTestImplementation 'com.android.support.test:rules:0.5'
 
     // Android JUnit Runner
-    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestImplementation 'com.android.support.test:runner:0.5'
 
     // Espresso core
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:2.2.2'
+
+    // Espresso web
+    androidTestImplementation 'com.android.support.test.espresso:espresso-web:2.2.2'
 
     // UIAutomator - for cross-app UI tests, and to grant screen is turned on in Espresso tests
-    androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.1'
+    androidTestImplementation 'com.android.support.test.uiautomator:uiautomator-v18:2.1.2'
 
+    // fix conflict in dependencies; see http://g.co/androidstudio/app-test-app-conflict for details
+    androidTestImplementation "com.android.support:support-annotations:${supportLibraryVersion}"
+
+    // Image loading
+    implementation ("com.github.bumptech.glide:glide:4.6.1") {
+        exclude group: "com.android.support"
+    }
+
+    //Zooming Android ImageView.
+    implementation "com.github.chrisbanes:PhotoView:2.0.0"
 }
 
 tasks.withType(Test) {
@@ -67,21 +94,26 @@ tasks.withType(Test) {
 }
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.2"
+    compileSdkVersion 26
 
     defaultConfig {
+
+        manifestPlaceholders.versionCode = "20800000"
+        manifestPlaceholders.versionName = "2.8.0"
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
         // arguments to be passed to functional tests
         testInstrumentationRunnerArgument "TEST_USER", "\"$System.env.OCTEST_APP_USERNAME\""
         testInstrumentationRunnerArgument "TEST_PASSWORD", "\"$System.env.OCTEST_APP_PASSWORD\""
+        testInstrumentationRunnerArgument "TEST_USER2", "\"$System.env.OCTEST_APP_USERNAME2\""
+        testInstrumentationRunnerArgument "TEST_PASSWORD2", "\"$System.env.OCTEST_APP_PASSWORD2\""
         testInstrumentationRunnerArgument "TEST_SERVER_URL", "\"$System.env.OCTEST_SERVER_BASE_URL\""
-
-        jackOptions {
-            enabled false
-        }
-
+        testInstrumentationRunnerArgument "TRUSTED", "\"$System.env.OCTEST_SERVER_TRUSTED\""
+        testInstrumentationRunnerArgument "TEST_USERNAME_ID", "\"$System.env.OCTEST_WEB_USERFIELD\""
+        testInstrumentationRunnerArgument "TEST_PASSWORD_ID", "\"$System.env.OCTEST_WEB_PASSFIELD\""
+        testInstrumentationRunnerArgument "TEST_SUBMIT_XPATH", "\"$System.env.OCTEST_WEB_SUBMITXPATH\""
+        testInstrumentationRunnerArgument "TEST_LOOKUP", "\"$System.env.OCTEST_SERVER_LOOKUP\""
     }
 
     // adapt structure from Eclipse to Gradle/Android Studio expectations;
@@ -97,13 +129,11 @@ android {
             assets.srcDirs = ['assets']
         }
 
-
         // move whole local unit tests structure as a whole from src/test/* to test/*
         test.setRoot('test')
 
         // move whole instrumented tests structure as a whole from src/androidTest/* to androidTest/*
         androidTest.setRoot('androidTest')
-
 
         // Move the build types to build-types/<type>
         // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
@@ -116,12 +146,13 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     lintOptions {
         abortOnError false
+        disable 'MissingTranslation'
     }
 
     packagingOptions {
@@ -144,10 +175,15 @@ android {
     }
 
     buildTypes {
+
         release {
             if (System.env.OC_RELEASE_KEYSTORE) {
                 signingConfig signingConfigs.release
             }
+        }
+
+        debug {
+            applicationIdSuffix ".debug"
         }
     }
 
@@ -155,7 +191,6 @@ android {
         def appName = System.env.OC_APP_NAME
         setOutputFileName(variant, appName, project)
     }
-
 }
 
 // Updates output file names of a given variant to format
@@ -171,8 +206,8 @@ android {
 def setOutputFileName(variant, appName, callerProject) {
     logger.info("Setting new name for output of variant $variant.name")
 
-    def originalFile = variant.outputs[0].outputFile;
-    def originalName = originalFile.name;
+    def originalFile = variant.outputs[0].outputFile
+    def originalName = originalFile.name
     logger.info("$variant.name: originalName is $originalName")
 
     def newName = ""
@@ -183,7 +218,14 @@ def setOutputFileName(variant, appName, callerProject) {
         newName += callerProject.archivesBaseName
     }
 
-    newName += "_$variant.versionName"
+    def versionName = "$variant.mergedFlavor.versionName"
+    if (variant.mergedFlavor.manifestPlaceholders.versionName != null) {
+        versionName = "$variant.mergedFlavor.manifestPlaceholders.versionName"
+    }
+    if (variant.buildType.manifestPlaceholders.versionName != null) {
+        versionName = "$variant.buildType.manifestPlaceholders.versionName"
+    }
+    newName += "_$versionName"
 
     def buildNumber = System.env.OC_BUILD_NUMBER
     if (buildNumber) {
@@ -193,6 +235,8 @@ def setOutputFileName(variant, appName, callerProject) {
     newName += originalName.substring(callerProject.archivesBaseName.length())
 
     logger.info("$variant.name: newName is $newName")
-    variant.outputs[0].outputFile = new File(originalFile.parent, newName)
-}
 
+    variant.outputs.all {
+        outputFileName = new File(".", newName)
+    }
+}

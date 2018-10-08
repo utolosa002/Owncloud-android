@@ -2,7 +2,8 @@
  *   ownCloud Android client application
  *
  *   @author masensio
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author David González Verdugo
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -17,7 +18,6 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 
 package com.owncloud.android.operations;
 
@@ -58,8 +58,7 @@ public class GetSharesForFileOperation extends SyncOperation {
 
     @Override
     protected RemoteOperationResult run(OwnCloudClient client) {
-        GetRemoteSharesForFileOperation operation = new GetRemoteSharesForFileOperation(mPath,
-                mReshares, mSubfiles);
+        GetRemoteSharesForFileOperation operation = new GetRemoteSharesForFileOperation(mPath, mReshares, mSubfiles);
         RemoteOperationResult result = operation.execute(client);
 
         if (result.isSuccess()) {
@@ -71,7 +70,7 @@ public class GetSharesForFileOperation extends SyncOperation {
                 shares.add((OCShare) obj);
             }
 
-            getStorageManager().saveSharesDB(shares);
+            getStorageManager().saveShares(shares);
 
         } else if (result.getCode() == RemoteOperationResult.ResultCode.SHARE_NOT_FOUND) {
             // no share on the file - remove local shares
@@ -81,5 +80,4 @@ public class GetSharesForFileOperation extends SyncOperation {
 
         return result;
     }
-
 }

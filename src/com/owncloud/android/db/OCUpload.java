@@ -4,7 +4,8 @@
  *   @author LukeOwncloud
  *   @author masensio
  *   @author David A. Velasco
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -41,7 +42,6 @@ import java.io.File;
 /**
  * Stores all information in order to start upload operations. PersistentUploadObject can
  * be stored persistently by {@link UploadsStorageManager}.
- * 
  */
 public class OCUpload implements Parcelable {
 
@@ -298,7 +298,7 @@ public class OCUpload implements Parcelable {
         mCreatedBy = createdBy;
     }
 
-    public int getCreadtedBy() {
+    public int getCreatedBy() {
         return mCreatedBy;
     }
 
@@ -392,6 +392,6 @@ public class OCUpload implements Parcelable {
         dest.writeInt(mCreatedBy);
     }
 
-    enum CanUploadFileNowStatus {NOW, LATER, FILE_GONE, ERROR};
+    enum CanUploadFileNowStatus {NOW, LATER, FILE_GONE, ERROR}
 
 }

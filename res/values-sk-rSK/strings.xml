@@ -11,6 +11,7 @@
   <string name="actionbar_see_details">Podrobnosti</string>
   <string name="actionbar_send_file">Odoslať</string>
   <string name="actionbar_sort">Zoradiť</string>
+  <string name="actionbar_descending">Zostupne</string>
   <string name="actionbar_sort_title">Zoradiť podľa</string>
   <string name="actionbar_sort_by_name">A-Z</string>
   <!--TODO re-enable when "Accounts" is available in Navigation Drawer-->
@@ -22,15 +23,14 @@
   <string name="drawer_item_uploads_list">Nahranie</string>
   <string name="drawer_close">Zavrieť</string>
   <string name="drawer_open">Otvoriť</string>
+  <string name="drawer_feedback">Spätná väzba</string>
+  <string name="drawer_help">Pomoc</string>
   <string name="prefs_category_general">Všeobecné</string>
   <string name="prefs_category_more">Viac</string>
+  <string name="prefs_category_security">Zabezpečenie</string>
   <string name="prefs_accounts">Účty</string>
   <string name="prefs_manage_accounts">Správa účtov</string>
   <string name="prefs_passcode">Heslo</string>
-  <string name="prefs_instant_upload">Okamžité nahratie obrázka</string>
-  <string name="prefs_instant_upload_summary">Okamžite nahrať obrázok zaznamenaný fotoaparátom</string>
-  <string name="prefs_instant_video_upload">Okamžité nahranie videa</string>
-  <string name="prefs_instant_video_upload_summary">Okamžite nahrať video zaznamenané fotoaparátom</string>
   <string name="prefs_log_title">Povoliť logovanie</string>
   <string name="prefs_log_summary">Toto je použité pre logovanie problémov</string>
   <string name="prefs_log_title_history">História logov</string>
@@ -49,7 +49,7 @@
   <string name="auth_password">Heslo</string>
   <string name="auth_register">Ste nový v %1$s?</string>
   <string name="sync_string_files">Súbory</string>
-  <string name="setup_btn_connect">Pripojiť</string>
+  <string name="setup_btn_login">Pripojiť</string>
   <string name="uploader_btn_upload_text">Nahrať</string>
   <string name="uploader_top_message">Vyberte adresár na nahrávanie</string>
   <string name="uploader_wrn_no_account_title">Účet sa nenašiel</string>
@@ -98,6 +98,7 @@
   <string name="uploader_upload_failed_ticker">Odoslanie bolo neúspešné</string>
   <string name="uploader_upload_failed_content_single">Odoslanie %1$s nemohlo byť dokončené</string>
   <string name="uploader_upload_failed_credentials_error">Nahrávanie zlyhalo, je potrebné sa prihlásiť ešte raz</string>
+  <string name="uploader_upload_text_filename_hint">Názov súboru</string>
   <string name="uploads_view_title">Nahranie</string>
   <string name="uploads_view_group_current_uploads">Aktuálne</string>
   <string name="uploads_view_group_finished_uploads">Odoslané</string>
@@ -169,11 +170,8 @@
   <string name="auth_account_not_new">Účet pre tohoto používateľa a tento server už v tomto zariadení existuje</string>
   <string name="auth_account_not_the_same">Zadané prihlasovacie údaje používateľa sú nesprávne</string>
   <string name="auth_unknown_error_title">Nastala neznáma chyba!</string>
-  <string name="auth_unknown_host_title">Nemožno nájsť hosta</string>
   <string name="auth_incorrect_path_title">Inštancia servera nebola nájdená</string>
-  <string name="auth_timeout_title">Serveru trvá odpoveď príliš dlho</string>
   <string name="auth_ssl_general_error_title">Inicializácia SSL zlyhala</string>
-  <string name="auth_ssl_unverified_server_title">Nepodarilo sa overiť identitu servera SSL</string>
   <string name="auth_bad_oc_version_title">Nerozpoznaná verzia servera</string>
   <string name="auth_wrong_connection_title">Nie je možne vytvoriť spojenie</string>
   <string name="auth_secure_connection">Vytvorené zabezpečené spojenie</string>
@@ -192,6 +190,7 @@
   <string name="confirmation_remove_file_alert">Naozaj chcete odstrániť %1$s?</string>
   <string name="confirmation_remove_folder_alert">Naozaj chcete odstrániť %1$s a jeho obsah?</string>
   <string name="confirmation_remove_local">Iba lokálne</string>
+  <string name="confirmation_remove_public_share_message">Naozaj chcete odstrániť %1$s?</string>
   <string name="remove_success_msg">Úspešne odstránené</string>
   <string name="remove_fail_msg">Odstránenie zlyhalo</string>
   <string name="rename_dialog_title">Zadajte nové meno</string>
@@ -209,8 +208,6 @@
   <string name="activity_chooser_title">Odošli link do ...</string>
   <string name="wait_for_tmp_copy_from_private_storage">Kopírovanie súboru z privátneho úložiska</string>
   <string name="oauth_check_onoff">Prihlásiť sa z oAuth2</string>
-  <string name="oauth_login_connection">Pripájam sa na oAuth2 server…</string>
-  <string name="ssl_validator_header">Identitu stránky nemožno overiť</string>
   <string name="ssl_validator_reason_cert_not_trusted">- Certifikát servera nie je overený</string>
   <string name="ssl_validator_reason_cert_expired">- Platnosť certifikátu servera vypršala</string>
   <string name="ssl_validator_reason_cert_not_yet_valid">- Certifikát servera je príliš mladý</string>
@@ -243,7 +240,6 @@
   <string name="placeholder_filesize">389 KB</string>
   <string name="placeholder_timestamp">2012/05/18 12:23 PM</string>
   <string name="placeholder_media_time">12:23:45</string>
-  <string name="instant_upload_path">/InstantUpload</string>
   <string name="conflict_title">Konflikt súborov</string>
   <string name="conflict_message">Ktoré súbory si prajate ponachať? Pokiaľ to budú obe verzie, lokálnej pribudne k názvu číslo.</string>
   <string name="conflict_keep_both">Ponechať oba</string>
@@ -265,9 +261,7 @@
   <string name="clipboard_text_copied">Skopírované do schránky</string>
   <string name="error_cant_bind_to_operations_service">Kritická chyba: operáciu nemožno vykonať</string>
   <string name="network_error_socket_exception">Pri pokuse o pripojenie na server nastala chyba.</string>
-  <string name="network_error_socket_timeout_exception">Pri čakaní na odpoveď servera nastala chyba, operácia nemohla byť dokončená</string>
-  <string name="network_error_connect_timeout_exception">Pri čakaní na odpoveď servera nastala chyba, operácia nemohla byť dokončená</string>
-  <string name="network_host_not_available">Operácia nemohla byť dokončená, server je nedostupný</string>
+  <string name="network_error_socket_timeout_exception">Serveru trvá odpoveď príliš dlho</string>
   <string name="forbidden_permissions">Nemáte oprávnenie %s</string>
   <string name="forbidden_permissions_rename">premenovať tento súbor</string>
   <string name="forbidden_permissions_delete">zmazať tento súbor</string>
@@ -278,6 +272,7 @@
   <string name="downloader_download_file_not_found">Súbor už na serveri nie je dostupný</string>
   <string name="prefs_category_accounts">Účty</string>
   <string name="prefs_add_account">Pridať účet</string>
+  <string name="drawer_manage_accounts">Správa účtov</string>
   <string name="auth_redirect_non_secure_connection_title">Zabezpečené spojenie je presmerované nezabezpečenou cestou.</string>
   <string name="actionbar_logger">Logy</string>
   <string name="log_send_mail_subject">%1$s Android app logs</string>
@@ -296,7 +291,6 @@
   <string name="copy_file_invalid_overwrite">Súbor už v cieľovom priečinku existuje</string>
   <string name="copy_file_error">Počas kopírovania súboru alebo zložky sa vyskytla chyba</string>
   <string name="forbidden_permissions_copy">kopírovať súbor</string>
-  <string name="prefs_category_details">Podrobnosti</string>
   <string name="sync_folder_failed_content">Synchronizáciu priečinka %1$s nebolo možné dokončiť</string>
   <string name="shared_subject_header">zdieľané</string>
   <string name="with_you_subject_header">s vami</string>
@@ -314,13 +308,13 @@
   <string name="file_list__footer__files">%1$d súb.</string>
   <string name="file_list__footer__files_and_folder">%1$d súb., 1 priečinok</string>
   <string name="file_list__footer__files_and_folders">%1$d súb., %2$d prieč.</string>
-  <string name="share_dialog_title">Zdieľanie</string>
+  <string name="share_dialog_title">Zdieľať</string>
   <string name="share_no_users">Zatiaľ s používateľmi nezdieľate žiadne dáta.</string>
-  <string name="share_via_link_section_title">Zdieľať linku</string>
-  <string name="share_via_link_expiration_date_label">Nastaviť dátum expirácie</string>
-  <string name="share_via_link_password_label">Chrániť heslom</string>
+  <string name="share_cancel_public_link_button">Zrušiť</string>
+  <string name="share_confirm_public_link_button">Uložiť</string>
+  <string name="share_via_link_expiration_date_label">Koniec platnosti</string>
+  <string name="share_via_link_password_label">Heslo</string>
   <string name="share_via_link_password_title">Zabezpečené</string>
-  <string name="share_via_link_edit_permission_label">Povoliť úpravy</string>
   <string name="share_search">Hľadať</string>
   <string name="search_users_and_groups_hint">Vyhľadať používateľov alebo skupiny</string>
   <string name="share_group_clarification">%1$s (skupina)</string>
@@ -331,4 +325,5 @@
   <string name="share_privilege_can_edit_create">vytvoriť</string>
   <string name="share_privilege_can_edit_change">zmeniť</string>
   <string name="share_privilege_can_edit_delete">vymazať</string>
+  <!--Welcome to oC intro features-->
 </resources>

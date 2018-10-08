@@ -3,8 +3,9 @@
  *
  *   @author Bartek Przybylski
  *   @author David A. Velasco
+ *   @author David González Verdugo
  *   Copyright (C) 2011  Bartek Przybylski
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -22,6 +23,7 @@
 
 package com.owncloud.android.utils;
 
+import android.accounts.Account;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
@@ -32,14 +34,14 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.text.format.DateUtils;
 import android.view.Display;
-import android.view.View;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
-import android.widget.TextView;
 
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.OCFile;
+import com.owncloud.android.datamodel.ThumbnailsCacheManager;
 
 import java.math.BigDecimal;
 import java.net.IDN;
@@ -53,6 +55,7 @@ import java.util.Map;
  * A helper class for some string operations.
  */
 public class DisplayUtils {
+    private static final String TAG = DisplayUtils.class.getSimpleName();
     
     private static final String OWNCLOUD_APP_NAME = "ownCloud";
     
@@ -93,13 +96,20 @@ public class DisplayUtils {
         } else {
             double result = bytes;
             int attachedSuff = 0;
-            while (result > 1024 && attachedSuff < sizeSuffixes.length) {
+            while (result >= 1024 && attachedSuff < sizeSuffixes.length) {
                 result /= 1024.;
                 attachedSuff++;
             }
 
-            return new BigDecimal(result).setScale(
-                sizeScales[attachedSuff], BigDecimal.ROUND_HALF_UP
+            BigDecimal readableResult = new BigDecimal(result).setScale(
+                    sizeScales[attachedSuff],
+                    BigDecimal.ROUND_HALF_UP
+            ).stripTrailingZeros();
+
+            // Unscale only values with ten exponent
+            return (readableResult.scale() < 0 ?
+                    readableResult.setScale(0) :
+                    readableResult
             ) + " " + sizeSuffixes[attachedSuff];
         }
     }
@@ -292,5 +302,41 @@ public class DisplayUtils {
     public static void colorSnackbar(Context context, Snackbar snackbar) {
         // Changing action button text color
         snackbar.setActionTextColor(ContextCompat.getColor(context, R.color.white));
+    }
+
+    /**
+     * Show the avatar corresponding to the received account in an {@ImageView}.
+     *
+     * The avatar is shown if available locally in {@link ThumbnailsCacheManager}. The avatar is not
+     * fetched from the server if not available.
+     *
+     * If there is no avatar stored, a colored icon is generated with the first letter of the account username.
+     *
+     * If this is not possible either, a predefined user icon is shown instead.
+     *
+     * @param account           OC account which avatar will be shown.
+     * @param displayView       The image view to set the avatar on.
+     * @param displayRadius     The radius of the circle where the avatar will be clipped into.
+     * @param fetchFromServer   When 'true', if there is no avatar stored in the cache, it's fetched from
+     *                          the server. When 'false', server is not accessed, the fallback avatar is
+     *                          generated instead. USE WITH CARE, probably to be removed in the future.
+     *
+     */
+    public static void showAccountAvatar(
+        Account account,
+        ImageView displayView,
+        float displayRadius,
+        boolean fetchFromServer
+    ) {
+        if (account != null) {
+            // not just accessibility support, used to know what account is bound to each imageView
+            displayView.setContentDescription(account.name);
+
+            final ThumbnailsCacheManager.GetAvatarTask task =
+                new ThumbnailsCacheManager.GetAvatarTask(
+                    displayView, account, displayRadius, fetchFromServer
+                );
+            task.execute();
+        }
     }
 }

@@ -5,8 +5,10 @@
  * @author Tobias Kaminsky
  * @author David A. Velasco
  * @author masensio
+ * @author Christian Schabesberger
+ * @author David González Verdugo
  * Copyright (C) 2011  Bartek Przybylski
- * Copyright (C) 2016 ownCloud GmbH.
+ * Copyright (C) 2018 ownCloud GmbH.
  * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,9 +24,6 @@
  */
 package com.owncloud.android.ui.adapter;
 
-
-import java.util.ArrayList;
-import java.util.Vector;
 
 import android.accounts.Account;
 import android.content.Context;
@@ -56,6 +55,10 @@ import com.owncloud.android.utils.DisplayUtils;
 import com.owncloud.android.utils.FileStorageUtils;
 import com.owncloud.android.utils.MimetypeIconUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
 
 /**
  * This Adapter populates a ListView with all files and folders in an ownCloud
@@ -64,7 +67,8 @@ import com.owncloud.android.utils.MimetypeIconUtil;
 public class FileListListAdapter extends BaseAdapter implements ListAdapter {
 
     private Context mContext;
-    private Vector<OCFile> mFiles = null;
+    private Vector<OCFile> mImmutableFilesList = null; // List containing the database files, doesn't change with search
+    private Vector<OCFile> mFiles = null; // List that can be changed when using search
     private boolean mJustFolders;
 
     private FileDataStorageManager mStorageManager;
@@ -140,7 +144,7 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
         }
 
         // Find out which layout should be displayed
-        ViewType viewType;
+        final ViewType viewType;
         if (parent instanceof GridView) {
             if (file != null && file.isImage()) {
                 viewType = ViewType.GRID_IMAGE;
@@ -171,20 +175,21 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
 
         if (file != null) {
 
-            ImageView fileIcon = (ImageView) view.findViewById(R.id.thumbnail);
+            final ImageView localStateView = view.findViewById(R.id.localFileIndicator);
+            final ImageView fileIcon = view.findViewById(R.id.thumbnail);
 
             fileIcon.setTag(file.getFileId());
             TextView fileName;
             String name = file.getFileName();
 
-            LinearLayout linearLayout = (LinearLayout) view.findViewById(R.id.ListItemLayout);
+            final LinearLayout linearLayout = view.findViewById(R.id.ListItemLayout);
             linearLayout.setContentDescription("LinearLayout-" + name);
 
             switch (viewType) {
                 case LIST_ITEM:
-                    TextView fileSizeV = (TextView) view.findViewById(R.id.file_size);
-                    TextView fileSizeSeparatorV = (TextView) view.findViewById(R.id.file_separator);
-                    TextView lastModV = (TextView) view.findViewById(R.id.last_mod);
+                    TextView fileSizeV = view.findViewById(R.id.file_size);
+                    TextView fileSizeSeparatorV = view.findViewById(R.id.file_separator);
+                    TextView lastModV = view.findViewById(R.id.last_mod);
 
 
                     lastModV.setVisibility(View.VISIBLE);
@@ -197,16 +202,15 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                         file.getFileLength(), mContext
                     ));
 
-
                 case GRID_ITEM:
                     // filename
-                    fileName = (TextView) view.findViewById(R.id.Filename);
+                    fileName = view.findViewById(R.id.Filename);
                     name = file.getFileName();
                     fileName.setText(name);
 
                 case GRID_IMAGE:
                     // sharedIcon
-                    ImageView sharedIconV = (ImageView) view.findViewById(R.id.sharedIcon);
+                    ImageView sharedIconV = view.findViewById(R.id.sharedIcon);
                     if (file.isSharedViaLink()) {
                         sharedIconV.setImageResource(R.drawable.shared_via_link);
                         sharedIconV.setVisibility(View.VISIBLE);
@@ -218,55 +222,13 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                     } else {
                         sharedIconV.setVisibility(View.GONE);
                     }
-
-                    // local state
-                    ImageView localStateView = (ImageView) view.findViewById(R.id.localFileIndicator);
-                    localStateView.bringToFront();
-                    FileDownloaderBinder downloaderBinder =
-                            mTransferServiceGetter.getFileDownloaderBinder();
-                    FileUploaderBinder uploaderBinder =
-                            mTransferServiceGetter.getFileUploaderBinder();
-                    OperationsServiceBinder opsBinder =
-                            mTransferServiceGetter.getOperationsServiceBinder();
-
-                    localStateView.setVisibility(View.INVISIBLE);   // default first
-
-                    if ( //synchronizing
-                            opsBinder != null &&
-                                    opsBinder.isSynchronizing(mAccount, file)
-                            ) {
-                        localStateView.setImageResource(R.drawable.ic_synchronizing);
-                        localStateView.setVisibility(View.VISIBLE);
-
-                    } else if ( // downloading
-                            downloaderBinder != null &&
-                                    downloaderBinder.isDownloading(mAccount, file)
-                            ) {
-                        localStateView.setImageResource(R.drawable.ic_synchronizing);
-                        localStateView.setVisibility(View.VISIBLE);
-
-                    } else if ( //uploading
-                            uploaderBinder != null &&
-                                    uploaderBinder.isUploading(mAccount, file)
-                            ) {
-                        localStateView.setImageResource(R.drawable.ic_synchronizing);
-                        localStateView.setVisibility(View.VISIBLE);
-
-                    } else if (file.getEtagInConflict() != null) {   // conflict
-                        localStateView.setImageResource(R.drawable.ic_synchronizing_error);
-                        localStateView.setVisibility(View.VISIBLE);
-
-                    } else if (file.isDown()) {
-                        localStateView.setImageResource(R.drawable.ic_synced);
-                        localStateView.setVisibility(View.VISIBLE);
-                    }
-
                     break;
             }
 
             // For all Views
+            setIconPinAcordingToFilesLocalState(localStateView, file);
 
-            ImageView checkBoxV = (ImageView) view.findViewById(R.id.custom_checkbox);
+            final ImageView checkBoxV = view.findViewById(R.id.custom_checkbox);
             checkBoxV.setVisibility(View.GONE);
             view.setBackgroundColor(Color.WHITE);
 
@@ -287,16 +249,13 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                 checkBoxV.setVisibility(View.VISIBLE);
             }
 
-            // this if-else is needed even though favorite icon is visible by default
-            // because android reuses views in listview
-            if (!file.isFavorite()) {
-                view.findViewById(R.id.favoriteIcon).setVisibility(View.GONE);
+            if(file.isFolder()) {
+                // Folder
+                fileIcon.setImageResource(
+                        MimetypeIconUtil.getFolderTypeIconId(
+                                file.isSharedWithMe() || file.isSharedWithSharee(),
+                                file.isSharedViaLink()));
             } else {
-                view.findViewById(R.id.favoriteIcon).setVisibility(View.VISIBLE);
-            }
-
-            // No Folder
-            if (!file.isFolder()) {
                 if (file.isImage() && file.getRemoteId() != null) {
                     // Thumbnail in Cache?
                     Bitmap thumbnail = ThumbnailsCacheManager.getBitmapFromDiskCache(
@@ -306,7 +265,7 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                         fileIcon.setImageBitmap(thumbnail);
                     } else {
                         // generate new Thumbnail
-                        if (ThumbnailsCacheManager.cancelPotentialWork(file, fileIcon)) {
+                        if (ThumbnailsCacheManager.cancelPotentialThumbnailWork(file, fileIcon)) {
                             final ThumbnailsCacheManager.ThumbnailGenerationTask task =
                                     new ThumbnailsCacheManager.ThumbnailGenerationTask(
                                             fileIcon, mStorageManager, mAccount
@@ -314,11 +273,11 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                             if (thumbnail == null) {
                                 thumbnail = ThumbnailsCacheManager.mDefaultImg;
                             }
-                            final ThumbnailsCacheManager.AsyncDrawable asyncDrawable =
-                                    new ThumbnailsCacheManager.AsyncDrawable(
-                                            mContext.getResources(),
-                                            thumbnail,
-                                            task
+                            final ThumbnailsCacheManager.AsyncThumbnailDrawable asyncDrawable =
+                                    new ThumbnailsCacheManager.AsyncThumbnailDrawable(
+                                        mContext.getResources(),
+                                        thumbnail,
+                                        task
                                     );
                             fileIcon.setImageDrawable(asyncDrawable);
                             task.execute(file);
@@ -337,17 +296,50 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
                 }
 
 
-            } else {
-                // Folder
-                fileIcon.setImageResource(
-                        MimetypeIconUtil.getFolderTypeIconId(
-                                file.isSharedWithMe() || file.isSharedWithSharee(),
-                                file.isSharedViaLink()
-                        )
-                );
             }
         }
         return view;
+    }
+
+    private void setIconPinAcordingToFilesLocalState(ImageView localStateView, OCFile file) {
+        // local state
+        localStateView.bringToFront();
+        final FileDownloaderBinder downloaderBinder =
+                mTransferServiceGetter.getFileDownloaderBinder();
+        final FileUploaderBinder uploaderBinder =
+                mTransferServiceGetter.getFileUploaderBinder();
+        final OperationsServiceBinder opsBinder =
+                mTransferServiceGetter.getOperationsServiceBinder();
+
+        localStateView.setVisibility(View.INVISIBLE);   // default first
+
+        if (opsBinder != null && opsBinder.isSynchronizing(mAccount, file)) {
+            //syncing
+            localStateView.setImageResource(R.drawable.sync_pin);
+            localStateView.setVisibility(View.VISIBLE);
+        } else if (downloaderBinder != null && downloaderBinder.isDownloading(mAccount, file)) {
+            // downloading
+            localStateView.setImageResource(R.drawable.sync_pin);
+            localStateView.setVisibility(View.VISIBLE);
+        } else if (uploaderBinder != null && uploaderBinder.isUploading(mAccount, file)) {
+            // uploading
+            localStateView.setImageResource(R.drawable.sync_pin);
+            localStateView.setVisibility(View.VISIBLE);
+        } else if (file.getEtagInConflict() != null) {
+            // conflict
+            localStateView.setImageResource(R.drawable.error_pin);
+            localStateView.setVisibility(View.VISIBLE);
+        } else {
+            if (file.isDown()) {
+                localStateView.setVisibility(View.VISIBLE);
+                localStateView.setImageResource(R.drawable.downloaded_pin);
+            }
+
+            if(file.isAvailableOffline()) {
+                localStateView.setVisibility(View.VISIBLE);
+                localStateView.setImageResource(R.drawable.offline_available_pin);
+            }
+        }
     }
 
     @Override
@@ -379,9 +371,12 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
             mStorageManager = updatedStorageManager;
             mAccount = AccountUtils.getCurrentOwnCloudAccount(mContext);
         }
+
         if (mStorageManager != null) {
             // TODO Enable when "On Device" is recovered ?
-            mFiles = mStorageManager.getFolderContent(folder/*, onlyOnDevice*/);
+            mImmutableFilesList = mStorageManager.getFolderContent(folder/*, onlyOnDevice*/);
+
+            mFiles = mImmutableFilesList;
 
             if (mJustFolders) {
                 mFiles = getFolders(mFiles);
@@ -425,7 +420,6 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
         notifyDataSetChanged();
     }
 
-
     public ArrayList<OCFile> getCheckedItems(AbsListView parentList) {
         SparseBooleanArray checkedPositions = parentList.getCheckedItemPositions();
         ArrayList<OCFile> files = new ArrayList<>();
@@ -441,4 +435,40 @@ public class FileListListAdapter extends BaseAdapter implements ListAdapter {
         return files;
     }
 
+    public void filterBySearch(String query) {
+        query = query.toLowerCase();
+
+        clearFilterBySearch();
+
+        List<OCFile> filteredList = new ArrayList<>();
+
+        // Gather files matching the query
+        for (OCFile fileToAdd : mFiles) {
+            final String nameOfTheFileToAdd = fileToAdd.getFileName().toLowerCase();
+            if (nameOfTheFileToAdd.contains(query)) {
+                filteredList.add(fileToAdd);
+            }
+        }
+
+        // Remove not matching files from the filelist
+        for (int i = mFiles.size() - 1; i >= 0; i--) {
+            if (!filteredList.contains(mFiles.get(i))) {
+                mFiles.remove(i);
+            }
+        }
+
+        // Add matching files to the filelist
+        for (int i = 0; i < filteredList.size(); i++) {
+            if (!mFiles.contains(filteredList.get(i))) {
+                mFiles.add(i, filteredList.get(i));
+            }
+        }
+
+        notifyDataSetChanged();
+    }
+
+    public void clearFilterBySearch() {
+        mFiles = (Vector<OCFile>) mImmutableFilesList.clone();
+        notifyDataSetChanged();
+    }
 }

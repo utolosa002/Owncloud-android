@@ -3,7 +3,8 @@
  *
  *   @author masensio
  *   @author David A. Velasco
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -23,7 +24,7 @@ package com.owncloud.android.ui.fragment;
 
 import android.accounts.Account;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,7 +45,9 @@ import com.owncloud.android.lib.resources.shares.ShareType;
 import com.owncloud.android.lib.resources.status.OwnCloudVersion;
 import com.owncloud.android.ui.activity.FileActivity;
 
-public class EditShareFragment extends Fragment {
+import java.util.Locale;
+
+public class EditShareFragment extends DialogFragment {
 
     private static final String TAG = EditShareFragment.class.getSimpleName();
 
@@ -113,7 +116,10 @@ public class EditShareFragment extends Fragment {
             } else {
                 mShare = savedInstanceState.getParcelable(ARG_SHARE);
             }
+            Log_OC.e(TAG, String.format(Locale.getDefault(), "Share has id %1$d remoteId %2$d", mShare.getId(), mShare.getRemoteId()));
         }
+
+        setStyle(DialogFragment.STYLE_NO_TITLE, 0);
     }
 
 
@@ -122,7 +128,6 @@ public class EditShareFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         Log_OC.d(TAG, "onActivityCreated");
-        getActivity().setTitle(mShare.getSharedWithDisplayName());
     }
 
 
@@ -155,7 +160,7 @@ public class EditShareFragment extends Fragment {
 
 
     /**
-     * Updates the UI with the current permissions in the edited {@OCShare}
+     * Updates the UI with the current permissions in the edited {@link OCShare}
      *
      * @param editShareView     Root view in the fragment.
      */
@@ -172,13 +177,13 @@ public class EditShareFragment extends Fragment {
             );
             CompoundButton compound;
 
-            compound = (CompoundButton) editShareView.findViewById(R.id.canShareSwitch);
+            compound = editShareView.findViewById(R.id.canShareSwitch);
             if(isFederated && !isNotReshareableFederatedSupported) {
                 compound.setVisibility(View.INVISIBLE);
             }
             compound.setChecked((sharePermissions & OCShare.SHARE_PERMISSION_FLAG) > 0);
 
-            compound = (CompoundButton) editShareView.findViewById(R.id.canEditSwitch);
+            compound = editShareView.findViewById(R.id.canEditSwitch);
             int anyUpdatePermission =
                     OCShare.CREATE_PERMISSION_FLAG |
                             OCShare.UPDATE_PERMISSION_FLAG |
@@ -186,19 +191,22 @@ public class EditShareFragment extends Fragment {
             boolean canEdit = (sharePermissions & anyUpdatePermission) > 0;
             compound.setChecked(canEdit);
 
-            if (mFile.isFolder() && (!isFederated || isNotReshareableFederatedSupported)) {
-                /// TODO delete extra && !isFederated when iOS is ready
-                compound = (CompoundButton) editShareView.findViewById(R.id.canEditCreateCheckBox);
+            boolean areEditOptionsAvailable = !isFederated || isNotReshareableFederatedSupported;
+
+            if (mFile.isFolder() && areEditOptionsAvailable) {
+                /// TODO change areEditOptionsAvailable in order to delete !isFederated
+                // from checking when iOS is ready
+                compound = editShareView.findViewById(R.id.canEditCreateCheckBox);
                 compound.setChecked((sharePermissions & OCShare.CREATE_PERMISSION_FLAG) > 0);
-                compound.setVisibility((canEdit && !isFederated) ? View.VISIBLE : View.GONE);
+                compound.setVisibility((canEdit) ? View.VISIBLE : View.GONE);
 
-                compound = (CompoundButton) editShareView.findViewById(R.id.canEditChangeCheckBox);
+                compound = editShareView.findViewById(R.id.canEditChangeCheckBox);
                 compound.setChecked((sharePermissions & OCShare.UPDATE_PERMISSION_FLAG) > 0);
-                compound.setVisibility((canEdit && !isFederated) ? View.VISIBLE : View.GONE);
+                compound.setVisibility((canEdit) ? View.VISIBLE : View.GONE);
 
-                compound = (CompoundButton) editShareView.findViewById(R.id.canEditDeleteCheckBox);
+                compound = editShareView.findViewById(R.id.canEditDeleteCheckBox);
                 compound.setChecked((sharePermissions & OCShare.DELETE_PERMISSION_FLAG) > 0);
-                compound.setVisibility((canEdit && !isFederated) ? View.VISIBLE : View.GONE);
+                compound.setVisibility((canEdit) ? View.VISIBLE : View.GONE);
             }
 
             setPermissionsListening(editShareView, true);
@@ -221,20 +229,20 @@ public class EditShareFragment extends Fragment {
         CompoundButton.OnCheckedChangeListener changeListener = enable ? mOnPrivilegeChangeListener : null;
         CompoundButton compound;
 
-        compound = (CompoundButton) editShareView.findViewById(R.id.canShareSwitch);
+        compound = editShareView.findViewById(R.id.canShareSwitch);
         compound.setOnCheckedChangeListener(changeListener);
 
-        compound = (CompoundButton) editShareView.findViewById(R.id.canEditSwitch);
+        compound = editShareView.findViewById(R.id.canEditSwitch);
         compound.setOnCheckedChangeListener(changeListener);
 
         if (mFile.isFolder()) {
-            compound = (CompoundButton) editShareView.findViewById(R.id.canEditCreateCheckBox);
+            compound = editShareView.findViewById(R.id.canEditCreateCheckBox);
             compound.setOnCheckedChangeListener(changeListener);
 
-            compound = (CompoundButton) editShareView.findViewById(R.id.canEditChangeCheckBox);
+            compound = editShareView.findViewById(R.id.canEditChangeCheckBox);
             compound.setOnCheckedChangeListener(changeListener);
 
-            compound = (CompoundButton) editShareView.findViewById(R.id.canEditDeleteCheckBox);
+            compound = editShareView.findViewById(R.id.canEditDeleteCheckBox);
             compound.setOnCheckedChangeListener(changeListener);
         }
 
@@ -284,7 +292,7 @@ public class EditShareFragment extends Fragment {
                                 /// not federated shares -> enable all the subpermisions
                                 for (int i = 0; i < sSubordinateCheckBoxIds.length; i++) {
                                     //noinspection ConstantConditions, prevented in the method beginning
-                                    subordinate = (CompoundButton) getView().findViewById(sSubordinateCheckBoxIds[i]);
+                                    subordinate = getView().findViewById(sSubordinateCheckBoxIds[i]);
                                     if (!isFederated) { // TODO delete when iOS is ready
                                         subordinate.setVisibility(View.VISIBLE);
                                     }
@@ -296,7 +304,7 @@ public class EditShareFragment extends Fragment {
                             } else {
                                 /// federated share -> enable delete subpermission, as server side; TODO why?
                                 //noinspection ConstantConditions, prevented in the method beginning
-                                subordinate = (CompoundButton) getView().findViewById(R.id.canEditDeleteCheckBox);
+                                subordinate = getView().findViewById(R.id.canEditDeleteCheckBox);
                                 if (!subordinate.isChecked()) {
                                     toggleDisablingListener(subordinate);
                                 }
@@ -305,7 +313,7 @@ public class EditShareFragment extends Fragment {
                         } else {
                             for (int i = 0; i < sSubordinateCheckBoxIds.length; i++) {
                                 //noinspection ConstantConditions, prevented in the method beginning
-                                subordinate = (CompoundButton) getView().findViewById(sSubordinateCheckBoxIds[i]);
+                                subordinate = getView().findViewById(sSubordinateCheckBoxIds[i]);
                                 subordinate.setVisibility(View.GONE);
                                 if (subordinate.isChecked()) {
                                     toggleDisablingListener(subordinate);
@@ -359,7 +367,7 @@ public class EditShareFragment extends Fragment {
          * @param isChecked                 'true' iif subordinateCheckBoxView was checked.
          */
         private void syncCanEditSwitch(View subordinateCheckBoxView, boolean isChecked) {
-            CompoundButton canEditCompound = (CompoundButton) getView().findViewById(R.id.canEditSwitch);
+            CompoundButton canEditCompound = getView().findViewById(R.id.canEditSwitch);
             if (isChecked) {
                 if (!canEditCompound.isChecked()) {
                     toggleDisablingListener(canEditCompound);
@@ -435,7 +443,7 @@ public class EditShareFragment extends Fragment {
         FileDataStorageManager storageManager = ((FileActivity) getActivity()).getStorageManager();
         if (storageManager != null) {
             // Get edited share
-            mShare = storageManager.getShareById(mShare.getId());
+            mShare = storageManager.getShareByRemoteId(mShare.getRemoteId());
 
             // Updates UI with new state
             refreshUiFromState(editShareView);
@@ -459,7 +467,7 @@ public class EditShareFragment extends Fragment {
         int permissions = spb.build();
 
         ((FileActivity) getActivity()).getFileOperationsHelper().
-                setPermissionsToShare(
+            setPermissionsToShareWithSharee(
                         mShare,
                         permissions
                 )

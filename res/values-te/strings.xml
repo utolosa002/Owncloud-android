@@ -7,6 +7,7 @@
   <!--<string name="drawer_item_accounts">Accounts</string>-->
   <!--TODO re-enable when "On Device" is available
     <string name="drawer_item_on_device">On device</string>-->
+  <string name="drawer_help">సహాయం</string>
   <string name="prefs_category_more">మరిన్ని</string>
   <string name="prefs_help">సహాయం</string>
   <string name="auth_username">వాడుకరి పేరు</string>
@@ -20,5 +21,9 @@
   <string name="uploader_info_dirname">సంచయం పేరు</string>
   <string name="activity_chooser_send_file_title">పంపించు</string>
   <string name="auth_host_address">సేవకి చిరునామా</string>
+  <string name="share_cancel_public_link_button">రద్దుచేయి</string>
+  <string name="share_confirm_public_link_button">భద్రపరచు</string>
+  <string name="share_via_link_password_label">సంకేతపదం</string>
   <string name="share_privilege_can_edit_delete">తొలగించు</string>
+  <!--Welcome to oC intro features-->
 </resources>

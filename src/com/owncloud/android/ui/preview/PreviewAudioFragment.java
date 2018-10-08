@@ -2,7 +2,8 @@
  *   ownCloud Android client application
  *
  *   @author David A. Velasco
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -20,12 +21,10 @@
 package com.owncloud.android.ui.preview;
 
 import android.accounts.Account;
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
@@ -39,13 +38,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.FileDataStorageManager;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.files.FileMenuFilter;
-import com.owncloud.android.files.services.FileDownloader;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.media.MediaControlView;
 import com.owncloud.android.media.MediaService;
@@ -153,9 +150,9 @@ public class PreviewAudioFragment extends FileFragment {
         Log_OC.v(TAG, "onCreateView");
 
         View view = inflater.inflate(R.layout.preview_audio_fragment, container, false);
-        mImagePreview = (ImageView) view.findViewById(R.id.image_preview);
-        mMediaController = (MediaControlView) view.findViewById(R.id.media_controller);
-        mProgressBar = (ProgressBar)view.findViewById(R.id.syncProgressBar);
+        mImagePreview = view.findViewById(R.id.image_preview);
+        mMediaController = view.findViewById(R.id.media_controller);
+        mProgressBar = view.findViewById(R.id.syncProgressBar);
         DisplayUtils.colorPreLollipopHorizontalProgressBar(mProgressBar);
 
         return view;
@@ -171,8 +168,8 @@ public class PreviewAudioFragment extends FileFragment {
         Log_OC.v(TAG, "onActivityCreated");
 
         OCFile file;
+        Bundle args = getArguments();
         if (savedInstanceState == null) {
-            Bundle args = getArguments();
             file = args.getParcelable(PreviewAudioFragment.EXTRA_FILE);
             setFile(file);
             mAccount = args.getParcelable(PreviewAudioFragment.EXTRA_ACCOUNT);
@@ -183,8 +180,14 @@ public class PreviewAudioFragment extends FileFragment {
             file = savedInstanceState.getParcelable(PreviewAudioFragment.EXTRA_FILE);
             setFile(file);
             mAccount = savedInstanceState.getParcelable(PreviewAudioFragment.EXTRA_ACCOUNT);
-            mSavedPlaybackPosition = savedInstanceState.getInt(PreviewAudioFragment.EXTRA_PLAY_POSITION);
-            mAutoplay = savedInstanceState.getBoolean(PreviewAudioFragment.EXTRA_PLAYING);
+            mSavedPlaybackPosition = savedInstanceState.getInt(
+                PreviewAudioFragment.EXTRA_PLAY_POSITION,
+                args.getInt(PreviewAudioFragment.EXTRA_PLAY_POSITION)
+            );
+            mAutoplay = savedInstanceState.getBoolean(
+                PreviewAudioFragment.EXTRA_PLAYING,
+                args.getBoolean(PreviewAudioFragment.EXTRA_PLAYING)
+            );
         }
 
         if (file == null) {
@@ -238,8 +241,10 @@ public class PreviewAudioFragment extends FileFragment {
 
         outState.putParcelable(PreviewAudioFragment.EXTRA_FILE, getFile());
         outState.putParcelable(PreviewAudioFragment.EXTRA_ACCOUNT, mAccount);
-        outState.putInt(PreviewAudioFragment.EXTRA_PLAY_POSITION, mMediaServiceBinder.getCurrentPosition());
-        outState.putBoolean(PreviewAudioFragment.EXTRA_PLAYING, mMediaServiceBinder.isPlaying());
+        if (mMediaServiceBinder != null) {
+            outState.putInt(PreviewAudioFragment.EXTRA_PLAY_POSITION, mMediaServiceBinder.getCurrentPosition());
+            outState.putBoolean(PreviewAudioFragment.EXTRA_PLAYING, mMediaServiceBinder.isPlaying());
+        }
     }
 
 
@@ -320,7 +325,7 @@ public class PreviewAudioFragment extends FileFragment {
             mContainerActivity,
             getActivity()
         );
-        mf.filter(menu);
+        mf.filter(menu, false, false);
 
         // additional restriction for this fragment 
         // TODO allow renaming in PreviewAudioFragment
@@ -377,12 +382,12 @@ public class PreviewAudioFragment extends FileFragment {
                 mContainerActivity.getFileOperationsHelper().syncFile(getFile());
                 return true;
             }
-            case R.id.action_favorite_file:{
-                mContainerActivity.getFileOperationsHelper().toggleFavorite(getFile(), true);
+            case R.id.action_set_available_offline:{
+                mContainerActivity.getFileOperationsHelper().toggleAvailableOffline(getFile(), true);
                 return true;
             }
-            case R.id.action_unfavorite_file:{
-                mContainerActivity.getFileOperationsHelper().toggleFavorite(getFile(), false);
+            case R.id.action_unset_available_offline:{
+                mContainerActivity.getFileOperationsHelper().toggleAvailableOffline(getFile(), false);
                 return true;
             }
             default:
@@ -486,10 +491,7 @@ public class PreviewAudioFragment extends FileFragment {
                     mMediaController.setMediaPlayer(null);
                 }
                 else {
-                    Toast.makeText(
-                            getActivity(),
-                            "No media controller to release when disconnected from media service", 
-                            Toast.LENGTH_SHORT).show();
+                    Log_OC.w(TAG, "No media controller to release when disconnected from media service");
                 }
                 mMediaServiceBinder = null;
                 mMediaServiceConnection = null;

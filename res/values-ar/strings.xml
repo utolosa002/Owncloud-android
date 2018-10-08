@@ -23,15 +23,14 @@
   <string name="drawer_item_uploads_list">التحميلات</string>
   <string name="drawer_close">إغلاق</string>
   <string name="drawer_open">افتح</string>
+  <string name="drawer_feedback">ملاحظات</string>
+  <string name="drawer_help">المساعدة</string>
   <string name="prefs_category_general">عام</string>
   <string name="prefs_category_more">المزيد</string>
+  <string name="prefs_category_security">الأمان</string>
   <string name="prefs_accounts">حسابات</string>
   <string name="prefs_manage_accounts">إدارة الحسابات</string>
   <string name="prefs_passcode">الرقم السري</string>
-  <string name="prefs_instant_upload">رفع الصورة مباشرة</string>
-  <string name="prefs_instant_upload_summary">رفع صورة المؤخذة عبر الكاميرا</string>
-  <string name="prefs_instant_video_upload">رفع فيديو مباشرة</string>
-  <string name="prefs_instant_video_upload_summary">رفع فيديو مباشرة من الكاميرا</string>
   <string name="prefs_log_summary">يستخدم هذا لتسجيل المشاكل</string>
   <string name="prefs_log_summary_history">هذا يعرض السجلات المسجلة</string>
   <string name="prefs_help">المساعدة</string>
@@ -48,7 +47,7 @@
   <string name="auth_password">كلمة السر</string>
   <string name="auth_register">جديد في %1$s ؟</string>
   <string name="sync_string_files">الملفات</string>
-  <string name="setup_btn_connect">اتصال</string>
+  <string name="setup_btn_login">اتصال</string>
   <string name="uploader_btn_upload_text">رفع</string>
   <string name="uploader_wrn_no_account_title">لم يتم العثور على أي حساب</string>
   <string name="uploader_wrn_no_account_text">لا توجد حسابات %1$s على جهازك.  أنت بحاجة لإعداد حساب في البداية.</string>
@@ -63,7 +62,6 @@
   <string name="file_list_seconds_ago">منذ ثواني</string>
   <string name="file_list_empty">لا يوجد شيء هنا. إرفع بعض الملفات!</string>
   <string name="file_list_loading">تحميل ...</string>
-  <string name="file_list_no_app_for_file_type">لم أجد تطبيقاً يدعم نوع الملف هذا!</string>
   <string name="local_file_list_empty">لا توجد ملفات في هذا المجلد</string>
   <string name="upload_list_empty">لا توجد تحميلات.</string>
   <string name="file_list_folder">مجلد</string>
@@ -106,6 +104,7 @@
   <string name="uploader_upload_failed_ticker">فشل الرفع</string>
   <string name="uploader_upload_failed_content_single">لم يكتمل رفع  %1$s </string>
   <string name="uploader_upload_failed_credentials_error">فشل التحميل ، تحتاج للدخول مرة أخرى</string>
+  <string name="uploader_upload_text_filename_hint">اسم الملف</string>
   <string name="uploads_view_title">التحميلات</string>
   <string name="uploads_view_group_current_uploads">الحالي</string>
   <string name="uploads_view_group_failed_uploads">فشل (إلمس لإعادة المحاولة)</string>
@@ -174,11 +173,8 @@
   <string name="auth_account_not_new">الحساب لنفس المستخدم والخادم موجود مسبقا على الجهاز </string>
   <string name="auth_account_not_the_same">المستخدم المدخل لا يتوافق مع المستخدم الموجود في الحساب </string>
   <string name="auth_unknown_error_title">حدث خطأ غير معروف !</string>
-  <string name="auth_unknown_host_title">فشل في العثور على المضيف</string>
   <string name="auth_incorrect_path_title">لم يتم إيجاد الخادم</string>
-  <string name="auth_timeout_title">الخادم أخذ كثيرا من الوقت للرد</string>
   <string name="auth_ssl_general_error_title">فشل في تهيئة SSL</string>
-  <string name="auth_ssl_unverified_server_title">لا يمكن التحقق من هوية خادم SSL</string>
   <string name="auth_bad_oc_version_title">إصدار الخادم غير معروف</string>
   <string name="auth_wrong_connection_title">لم ينجح الاتصال</string>
   <string name="auth_secure_connection">نجح الاتصال آمن</string>
@@ -196,6 +192,7 @@
   <string name="confirmation_remove_file_alert">هل تريد حقاً حذف %1$s ؟</string>
   <string name="confirmation_remove_folder_alert">هل ترغب في حذف %1$s و جهات الإتصال التابعة له؟ </string>
   <string name="confirmation_remove_local">محليا فقط</string>
+  <string name="confirmation_remove_public_share_message">هل تريد حقاً حذف %1$s ؟</string>
   <string name="remove_success_msg">تم الحذف بنجاح</string>
   <string name="remove_fail_msg">فشل الحذف</string>
   <string name="rename_dialog_title">أدخل اسما جديدا</string>
@@ -212,8 +209,6 @@
   <string name="filedisplay_no_file_selected">لم يتم اختيار أي ملف</string>
   <string name="activity_chooser_title">ارسل الرابط الى ...</string>
   <string name="oauth_check_onoff">تسجيل الدخول باستخدام oAuth2</string>
-  <string name="oauth_login_connection">الاتصال مع خادم oAuth2</string>
-  <string name="ssl_validator_header">لا يمكن التحقق من هوية الموقع</string>
   <string name="ssl_validator_reason_cert_not_trusted">شهادة الخادم غير موثوقة</string>
   <string name="ssl_validator_reason_cert_expired">شهادة الخادم منتهية الصلاحية</string>
   <string name="ssl_validator_reason_cert_not_yet_valid">وقت صلاحية شهادة الخادم لم يحن بعد</string>
@@ -243,7 +238,6 @@
   <string name="placeholder_filesize">389 KB</string>
   <string name="placeholder_timestamp">2012/05/18 12:23 مساء</string>
   <string name="placeholder_media_time">12:23:45</string>
-  <string name="instant_upload_path">/InstantUpload</string>
   <string name="conflict_keep_both">الاحتفاظ بالنسختين</string>
   <string name="preview_image_description">معاينة الصورة</string>
   <string name="preview_image_error_unknown_format">لا يمكن عرض هذه الصورة</string>
@@ -257,27 +251,27 @@
   <string name="clipboard_text_copied">تم النسخ للحافظة</string>
   <string name="error_cant_bind_to_operations_service">خطأ حرج: لا يمكن تنفيذ العمليات</string>
   <string name="network_error_socket_exception">حدث خطأ أثناء الإتصال مع الخادم.</string>
-  <string name="network_error_socket_timeout_exception">حدث خطأ أثناء إنتظار الخادم، لم يكن من الممكن القيام بالعملية</string>
-  <string name="network_error_connect_timeout_exception">حدث خطأ أثناء إنتظار الخادم، لم يكن من الممكن القيام بالعملية</string>
-  <string name="network_host_not_available">تعذر إكمال العملية، الخادم غير متوفر</string>
+  <string name="network_error_socket_timeout_exception">الخادم أخذ كثيرا من الوقت للرد</string>
   <string name="prefs_category_accounts">حسابات</string>
+  <string name="drawer_manage_accounts">إدارة الحسابات</string>
   <string name="actionbar_logger">سجل</string>
+  <string name="log_progress_dialog_text">تحميل البيانات</string>
   <string name="saml_authentication_wrong_pass">كلمة مرور خاطئة</string>
   <string name="actionbar_move">أنقل</string>
   <string name="folder_picker_choose_button_text">اختيار</string>
   <string name="move_file_invalid_overwrite">الملف موجود بالفعل في المجلد الوجهة</string>
   <string name="copy_file_invalid_overwrite">الملف موجود بالفعل في المجلد الوجهة</string>
-  <string name="prefs_category_details">تفاصيل</string>
   <string name="auth_host_address">عنوان الخادم</string>
-  <string name="share_dialog_title">مشاركة</string>
-  <string name="share_via_link_section_title">شارك الرابط</string>
-  <string name="share_via_link_expiration_date_label">تعيين تاريخ إنتهاء الصلاحية</string>
-  <string name="share_via_link_password_label">حماية كلمة السر</string>
-  <string name="share_via_link_edit_permission_label">السماح بالتعديلات</string>
+  <string name="share_dialog_title">شارك</string>
+  <string name="share_cancel_public_link_button">إلغاء</string>
+  <string name="share_confirm_public_link_button">حفظ</string>
+  <string name="share_via_link_expiration_date_label">إنتهاء</string>
+  <string name="share_via_link_password_label">كلمة السر</string>
   <string name="share_search">البحث</string>
   <string name="share_privilege_can_share">يمكن المشاركة</string>
   <string name="share_privilege_can_edit">يمكن التحرير</string>
   <string name="share_privilege_can_edit_create">إنشاء</string>
   <string name="share_privilege_can_edit_change">تغيير</string>
   <string name="share_privilege_can_edit_delete">حذف</string>
+  <!--Welcome to oC intro features-->
 </resources>

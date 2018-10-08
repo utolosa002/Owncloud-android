@@ -43,7 +43,7 @@ import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.lib.resources.shares.GetRemoteShareesOperation;
 import com.owncloud.android.lib.resources.shares.ShareType;
-import com.owncloud.android.utils.ErrorMessageAdapter;
+import com.owncloud.android.ui.errorhandling.ErrorMessageAdapter;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -71,7 +71,7 @@ public class UsersAndGroupsSearchProvider extends ContentProvider {
 
     private static final int SEARCH = 1;
 
-    private static final int RESULTS_PER_PAGE = 50;
+    private static final int RESULTS_PER_PAGE = 30;
     private static final int REQUESTED_PAGE = 1;
 
     public static final String CONTENT = "content";
@@ -162,7 +162,6 @@ public class UsersAndGroupsSearchProvider extends ContentProvider {
 
     private Cursor searchForUsersOrGroups(Uri uri) {
         MatrixCursor response = null;
-
 
         String userQuery = uri.getLastPathSegment().toLowerCase();
 
@@ -288,9 +287,10 @@ public class UsersAndGroupsSearchProvider extends ContentProvider {
                 // The Toast must be shown in the main thread to grant that will be hidden correctly; otherwise
                 // the thread may die before, an exception will occur, and the message will be left on the screen
                 // until the app dies
+
                 Toast.makeText(
                         getContext().getApplicationContext(),
-                        ErrorMessageAdapter.getErrorCauseMessage(
+                        ErrorMessageAdapter.getResultMessage(
                                 result,
                                 null,
                                 getContext().getResources()

@@ -2,7 +2,8 @@
  *   ownCloud Android client application
  *
  *   @author David A. Velasco
- *   Copyright (C) 2016 ownCloud GmbH.
+ *   @author Christian Schabesberger
+ *   Copyright (C) 2018 ownCloud GmbH.
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License version 2,
@@ -28,10 +29,10 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 import com.owncloud.android.R;
 import com.owncloud.android.lib.common.utils.Log_OC;
@@ -43,7 +44,7 @@ import java.io.File;
  * Displays local folders and let the user choose one of them, which path is set as result.
  */
 
-public class LocalFolderPickerActivity extends AppCompatActivity implements LocalFileListFragment.ContainerActivity {
+public class LocalFolderPickerActivity extends ToolbarActivity implements LocalFileListFragment.ContainerActivity {
 
     private static final String TAG = LocalFolderPickerActivity.class.getName();
 
@@ -55,6 +56,7 @@ public class LocalFolderPickerActivity extends AppCompatActivity implements Loca
 
     protected Button mCancelBtn;
     protected Button mChooseBtn;
+    protected ImageButton mHomeBtn;
 
 
     /**
@@ -102,7 +104,7 @@ public class LocalFolderPickerActivity extends AppCompatActivity implements Loca
        }
 
         // set input controllers
-        mCancelBtn = (Button) findViewById(R.id.folder_picker_btn_cancel);
+        mCancelBtn = findViewById(R.id.folder_picker_btn_cancel);
         mCancelBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -110,7 +112,7 @@ public class LocalFolderPickerActivity extends AppCompatActivity implements Loca
                 finish();
             }
         });
-        mChooseBtn = (Button) findViewById(R.id.folder_picker_btn_choose);
+        mChooseBtn = findViewById(R.id.folder_picker_btn_choose);
         mChooseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -121,7 +123,20 @@ public class LocalFolderPickerActivity extends AppCompatActivity implements Loca
                 finish();
             }
         });
+        mHomeBtn = findViewById(R.id.folder_picker_btn_home);
+        mHomeBtn.setVisibility(View.VISIBLE);
+        mHomeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCurrentFolder = Environment.getExternalStorageDirectory();
+                getListFragment().listFolder(mCurrentFolder);
+                updateActionBar();
+            }
+        });
 
+
+        // init toolbar
+        setupToolbar();
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayShowTitleEnabled(true);

@@ -5,8 +5,9 @@
  *  @author masensio
  *  @author Juan Carlos González Cabrero
  *  @author David A. Velasco
+ *  @author Christian Schabesberger
  *  Copyright (C) 2012  Bartek Przybylski
- *  Copyright (C) 2016 ownCloud GmbH.
+ *  Copyright (C) 2018 ownCloud GmbH.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2,
@@ -36,21 +37,29 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.res.Resources.NotFoundException;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.support.design.widget.TextInputEditText;
+import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AlertDialog.Builder;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
@@ -65,6 +74,7 @@ import com.owncloud.android.lib.common.operations.RemoteOperationResult.ResultCo
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.operations.CreateFolderOperation;
 import com.owncloud.android.operations.RefreshFolderOperation;
+import com.owncloud.android.operations.common.SyncOperation;
 import com.owncloud.android.syncadapter.FileSyncAdapter;
 import com.owncloud.android.ui.adapter.ReceiveExternalFilesAdapter;
 import com.owncloud.android.ui.dialog.ConfirmationDialogFragment;
@@ -73,9 +83,12 @@ import com.owncloud.android.ui.asynctasks.CopyAndUploadContentUrisTask;
 import com.owncloud.android.ui.fragment.TaskRetainerFragment;
 import com.owncloud.android.ui.helpers.UriUploader;
 import com.owncloud.android.utils.DisplayUtils;
-import com.owncloud.android.utils.ErrorMessageAdapter;
+import com.owncloud.android.ui.errorhandling.ErrorMessageAdapter;
 import com.owncloud.android.utils.FileStorageUtils;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Stack;
 import java.util.Vector;
@@ -98,6 +111,7 @@ public class ReceiveExternalFilesActivity extends FileActivity
     private String mUploadPath;
     private OCFile mFile;
 
+    private LocalBroadcastManager mLocalBroadcastManager;
     private SyncBroadcastReceiver mSyncBroadcastReceiver;
     private boolean mSyncInProgress = false;
     private boolean mAccountSelected;
@@ -107,6 +121,7 @@ public class ReceiveExternalFilesActivity extends FileActivity
     private final static int DIALOG_MULTIPLE_ACCOUNT = 1;
 
     private final static int REQUEST_CODE__SETUP_ACCOUNT = REQUEST_CODE__LAST_SHARED + 1;
+    private final static int MAX_FILENAME_LENGTH = 223;
 
     private final static String KEY_PARENTS = "PARENTS";
     private final static String KEY_FILE = "FILE";
@@ -142,7 +157,8 @@ public class ReceiveExternalFilesActivity extends FileActivity
                 EVENT_SINGLE_FOLDER_CONTENTS_SYNCED);
         syncIntentFilter.addAction(RefreshFolderOperation.EVENT_SINGLE_FOLDER_SHARES_SYNCED);
         mSyncBroadcastReceiver = new SyncBroadcastReceiver();
-        registerReceiver(mSyncBroadcastReceiver, syncIntentFilter);
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
+        mLocalBroadcastManager.registerReceiver(mSyncBroadcastReceiver, syncIntentFilter);
 
         // Init Fragment without UI to retain AsyncTask across configuration changes
         FragmentManager fm = getSupportFragmentManager();
@@ -173,13 +189,6 @@ public class ReceiveExternalFilesActivity extends FileActivity
                     setAccount(accounts[0]);
                 }
             }
-
-        } else if (getIntent().getStringExtra(Intent.EXTRA_TEXT) != null) {
-            showErrorDialog(
-                R.string.uploader_error_message_received_piece_of_text,
-                R.string.uploader_error_title_no_file_to_upload
-            );
-
         } else {
             showErrorDialog(
                 R.string.uploader_error_message_no_file_to_upload,
@@ -214,7 +223,7 @@ public class ReceiveExternalFilesActivity extends FileActivity
     @Override
     protected void onDestroy(){
         if (mSyncBroadcastReceiver != null) {
-            unregisterReceiver(mSyncBroadcastReceiver);
+            mLocalBroadcastManager.unregisterReceiver(mSyncBroadcastReceiver);
         }
         super.onDestroy();
     }
@@ -352,8 +361,12 @@ public class ReceiveExternalFilesActivity extends FileActivity
                 for (String p : mParents) {
                     mUploadPath += p + OCFile.PATH_SEPARATOR;
                 }
-                Log_OC.d(TAG, "Uploading file to dir " + mUploadPath);
-                uploadFiles();
+                if (!isPlainTextUpload()) {
+                    Log_OC.d(TAG, "Uploading file to dir " + mUploadPath);
+                    uploadFiles();
+                } else {
+                    showUploadTextDialog();
+                }
                 break;
 
             case R.id.uploader_cancel:
@@ -389,9 +402,10 @@ public class ReceiveExternalFilesActivity extends FileActivity
 
     private void populateDirectoryList() {
         setContentView(R.layout.uploader_layout);
-
-        ListView mListView = (ListView) findViewById(android.R.id.list);
+        setupToolbar();
         ActionBar actionBar = getSupportActionBar();
+
+        ListView mListView = findViewById(android.R.id.list);
 
         String current_dir = mParents.peek();
         if (current_dir.equals("")) {
@@ -420,10 +434,10 @@ public class ReceiveExternalFilesActivity extends FileActivity
             );
             mListView.setAdapter(sa);
 
-            Button btnChooseFolder = (Button) findViewById(R.id.uploader_choose_folder);
+            Button btnChooseFolder = findViewById(R.id.uploader_choose_folder);
             btnChooseFolder.setOnClickListener(this);
 
-            Button btnNewFolder = (Button) findViewById(R.id.uploader_cancel);
+            Button btnNewFolder = findViewById(R.id.uploader_cancel);
             btnNewFolder.setOnClickListener(this);
 
             mListView.setOnItemClickListener(this);
@@ -436,21 +450,18 @@ public class ReceiveExternalFilesActivity extends FileActivity
     }
 
     private void startSyncFolderOperation(OCFile folder) {
-        long currentSyncTime = System.currentTimeMillis();
 
         mSyncInProgress = true;
 
         // perform folder synchronization
-        RemoteOperation synchFolderOp = new RefreshFolderOperation( folder,
-                                                                        currentSyncTime,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        getStorageManager(),
-                                                                        getAccount(),
-                                                                        getApplicationContext()
-                                                                      );
-        synchFolderOp.execute(getAccount(), this, null, null);
+        SyncOperation synchFolderOp = new RefreshFolderOperation(
+            folder,
+            getFileOperationsHelper().isSharedSupported(),
+            false,
+            getAccount(),
+            getApplicationContext()
+        );
+        synchFolderOp.execute(getStorageManager(), this, null, null);
     }
 
     private Vector<OCFile> sortFileList(Vector<OCFile> files) {
@@ -480,7 +491,18 @@ public class ReceiveExternalFilesActivity extends FileActivity
     }
 
     private boolean somethingToUpload() {
-        return (mStreamsToUpload != null && mStreamsToUpload.get(0) != null);
+        return (mStreamsToUpload != null && mStreamsToUpload.get(0) != null ||
+                isPlainTextUpload());
+    }
+
+    /**
+     * Checks if the intent contains plain text and no other stream has been added yet.
+     *
+     * @return true/false
+     */
+    private boolean isPlainTextUpload() {
+        return mStreamsToUpload.get(0) == null &&
+                getIntent().getStringExtra(Intent.EXTRA_TEXT) != null;
     }
 
     @SuppressLint("NewApi")
@@ -548,10 +570,9 @@ public class ReceiveExternalFilesActivity extends FileActivity
             populateDirectoryList();
         } else {
             try {
-                Toast msg = Toast.makeText(this,
-                        ErrorMessageAdapter.getErrorCauseMessage(result, operation, getResources()),
-                        Toast.LENGTH_LONG);
-                msg.show();
+                showSnackMessage(
+                    ErrorMessageAdapter.getResultMessage(result, operation, getResources())
+                );
 
             } catch (NotFoundException e) {
                 Log_OC.e(TAG, "Error while trying to show fail message ", e);
@@ -591,7 +612,6 @@ public class ReceiveExternalFilesActivity extends FileActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
-        menu.findItem(R.id.action_sort).setVisible(false);
         menu.findItem(R.id.action_switch_view).setVisible(false);
         menu.findItem(R.id.action_sync_account).setVisible(false);
         return true;
@@ -644,80 +664,73 @@ public class ReceiveExternalFilesActivity extends FileActivity
          */
         @Override
         public void onReceive(Context context, Intent intent) {
-            try {
-                String event = intent.getAction();
-                Log_OC.d(TAG, "Received broadcast " + event);
-                String accountName = intent.getStringExtra(FileSyncAdapter.EXTRA_ACCOUNT_NAME);
-                String synchFolderRemotePath =
-                        intent.getStringExtra(FileSyncAdapter.EXTRA_FOLDER_PATH);
-                RemoteOperationResult synchResult =
-                        (RemoteOperationResult) intent.getSerializableExtra(
-                                FileSyncAdapter.EXTRA_RESULT);
-                boolean sameAccount = (getAccount() != null &&
-                        accountName.equals(getAccount().name) && getStorageManager() != null);
+            String event = intent.getAction();
+            Log_OC.d(TAG, "Received broadcast " + event);
+            String accountName = intent.getStringExtra(FileSyncAdapter.EXTRA_ACCOUNT_NAME);
+            String synchFolderRemotePath =
+                    intent.getStringExtra(FileSyncAdapter.EXTRA_FOLDER_PATH);
+            RemoteOperationResult synchResult =
+                    (RemoteOperationResult) intent.getSerializableExtra(
+                            FileSyncAdapter.EXTRA_RESULT);
+            boolean sameAccount = (getAccount() != null &&
+                    accountName.equals(getAccount().name) && getStorageManager() != null);
 
-                if (sameAccount) {
+            if (sameAccount) {
 
-                    if (FileSyncAdapter.EVENT_FULL_SYNC_START.equals(event)) {
-                        mSyncInProgress = true;
+                if (FileSyncAdapter.EVENT_FULL_SYNC_START.equals(event)) {
+                    mSyncInProgress = true;
+
+                } else {
+                    OCFile currentFile = (mFile == null) ? null :
+                            getStorageManager().getFileByPath(mFile.getRemotePath());
+                    OCFile currentDir = (getCurrentFolder() == null) ? null :
+                            getStorageManager().getFileByPath(getCurrentFolder().getRemotePath());
+
+                    if (currentDir == null) {
+                        // current folder was removed from the server
+                        showSnackMessage(
+                            String.format(
+                                getString(R.string.sync_current_folder_was_removed),
+                                getCurrentFolder().getFileName()
+                            )
+                        );
+                        browseToRoot();
 
                     } else {
-                        OCFile currentFile = (mFile == null) ? null :
-                                getStorageManager().getFileByPath(mFile.getRemotePath());
-                        OCFile currentDir = (getCurrentFolder() == null) ? null :
-                                getStorageManager().getFileByPath(getCurrentFolder().getRemotePath());
-
-                        if (currentDir == null) {
-                            // current folder was removed from the server
-                            Toast.makeText(context,
-                                    String.format(
-                                            getString(R.string.sync_current_folder_was_removed),
-                                            getCurrentFolder().getFileName()),
-                                    Toast.LENGTH_LONG)
-                                    .show();
-                            browseToRoot();
-
-                        } else {
-                            if (currentFile == null && !mFile.isFolder()) {
-                                // currently selected file was removed in the server, and now we know it
-                                currentFile = currentDir;
-                            }
-
-                            if (synchFolderRemotePath != null &&
-                                    currentDir.getRemotePath().equals(synchFolderRemotePath)) {
-                                populateDirectoryList();
-                            }
-                            mFile = currentFile;
+                        if (currentFile == null && !mFile.isFolder()) {
+                            // currently selected file was removed in the server, and now we know it
+                            currentFile = currentDir;
                         }
 
-                        mSyncInProgress = (!FileSyncAdapter.EVENT_FULL_SYNC_END.equals(event) &&
-                                !RefreshFolderOperation.EVENT_SINGLE_FOLDER_SHARES_SYNCED.equals(event));
+                        if (synchFolderRemotePath != null &&
+                                currentDir.getRemotePath().equals(synchFolderRemotePath)) {
+                            populateDirectoryList();
+                        }
+                        mFile = currentFile;
+                    }
 
-                        if (RefreshFolderOperation.EVENT_SINGLE_FOLDER_CONTENTS_SYNCED.
-                                equals(event) &&
-                                /// TODO refactor and make common
-                                synchResult != null && !synchResult.isSuccess()) {
+                    mSyncInProgress = (!FileSyncAdapter.EVENT_FULL_SYNC_END.equals(event) &&
+                            !RefreshFolderOperation.EVENT_SINGLE_FOLDER_SHARES_SYNCED.equals(event));
 
-                            if(synchResult.getCode() == ResultCode.UNAUTHORIZED ||
-                                        (synchResult.isException() && synchResult.getException()
-                                                instanceof AuthenticatorException)) {
+                    if (RefreshFolderOperation.EVENT_SINGLE_FOLDER_CONTENTS_SYNCED.
+                            equals(event) &&
+                            /// TODO refactor and make common
+                            synchResult != null && !synchResult.isSuccess()) {
 
-                                requestCredentialsUpdate(context);
+                        if(synchResult.getCode() == ResultCode.UNAUTHORIZED ||
+                                    (synchResult.isException() && synchResult.getException()
+                                            instanceof AuthenticatorException)) {
 
-                            } else if(RemoteOperationResult.ResultCode.SSL_RECOVERABLE_PEER_UNVERIFIED.equals(synchResult.getCode())) {
+                            requestCredentialsUpdate();
 
-                                showUntrustedCertDialog(synchResult);
-                            }
+                        } else if(RemoteOperationResult.ResultCode.SSL_RECOVERABLE_PEER_UNVERIFIED.equals(synchResult.getCode())) {
+
+                            showUntrustedCertDialog(synchResult);
                         }
                     }
-                    removeStickyBroadcast(intent);
-                    Log_OC.d(TAG, "Setting progress visibility to " + mSyncInProgress);
-
                 }
-            } catch (RuntimeException e) {
-                // avoid app crashes after changing the serial id of RemoteOperationResult
-                // in owncloud library with broadcast notifications pending to process
-                removeStickyBroadcast(intent);
+                Log_OC.d(TAG, "Setting progress visibility to " + mSyncInProgress);
+
             }
         }
     }
@@ -764,5 +777,112 @@ public class ReceiveExternalFilesActivity extends FileActivity
             }
         );
         errorDialog.show(getSupportFragmentManager(), FTAG_ERROR_FRAGMENT);
+    }
+
+    /**
+     * Show a dialog where the user can enter a filename for the file he wants to place the text in.
+     */
+    private void showUploadTextDialog() {
+        final AlertDialog.Builder builder = new Builder(this);
+
+        final View dialogView = getLayoutInflater().inflate(R.layout.dialog_upload_text, null);
+        builder.setView(dialogView);
+        builder.setTitle(R.string.uploader_upload_text_dialog_title);
+        builder.setCancelable(false);
+        builder.setPositiveButton(R.string.uploader_btn_upload_text, null);
+        builder.setNegativeButton(android.R.string.cancel, null);
+
+        final TextInputEditText input = dialogView.findViewById(R.id.inputFileName);
+        final TextInputLayout inputLayout = dialogView.findViewById(R.id.inputTextLayout);
+
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                inputLayout.setError(null);
+                inputLayout.setErrorEnabled(false);
+            }
+        });
+
+        final AlertDialog alertDialog = builder.create();
+        setFileNameFromIntent(alertDialog, input);
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                Button button = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        String fileName = input.getText().toString();
+                        String error = null;
+                        if (fileName.length() > MAX_FILENAME_LENGTH) {
+                            error = String.format(getString(R.string.uploader_upload_text_dialog_filename_error_length_max), MAX_FILENAME_LENGTH);
+                        } else if (fileName.length() == 0) {
+                            error = getString(R.string.uploader_upload_text_dialog_filename_error_empty);
+                        } else {
+                            fileName += ".txt";
+                            Uri fileUri = savePlainTextToFile(fileName);
+                            mStreamsToUpload.clear();
+                            mStreamsToUpload.add(fileUri);
+                            uploadFiles();
+                        }
+                        inputLayout.setErrorEnabled(error != null);
+                        inputLayout.setError(error);
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    /**
+     * Store plain text from intent to a new file in cache dir.
+     *
+     * @param fileName The name of the file.
+     * @return Uri from created file.
+     */
+    private Uri savePlainTextToFile(String fileName) {
+        Uri uri = null;
+        String content = getIntent().getStringExtra(Intent.EXTRA_TEXT);
+        try {
+            File tmpFile = new File(getCacheDir(), fileName);
+            FileOutputStream outputStream = new FileOutputStream(tmpFile);
+            outputStream.write(content.getBytes());
+            outputStream.close();
+            uri = Uri.fromFile(tmpFile);
+        } catch (IOException e) {
+            Log_OC.w(TAG, "Failed to create temp file for uploading plain text: " + e.getMessage());
+        }
+        return uri;
+    }
+
+    /**
+     * Suggest a filename based on the extras in the intent.
+     * Show soft keyboard when no filename could be suggested.
+     * @param alertDialog AlertDialog
+     * @param input EditText The view where to place the filename in.
+     */
+    private void setFileNameFromIntent(AlertDialog alertDialog, EditText input) {
+        String subject = getIntent().getStringExtra(Intent.EXTRA_SUBJECT);
+        String title = getIntent().getStringExtra(Intent.EXTRA_TITLE);
+        String fileName = subject != null ? subject : title;
+
+        input.setText(fileName);
+        input.selectAll();
+
+        if (fileName == null) {
+            // Show soft keyboard
+            Window window = alertDialog.getWindow();
+            if (window != null) window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
     }
 }

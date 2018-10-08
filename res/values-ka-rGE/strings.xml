@@ -11,8 +11,11 @@
   <!--TODO re-enable when "On Device" is available
     <string name="drawer_item_on_device">On device</string>-->
   <string name="drawer_open">გახსნა</string>
+  <string name="drawer_feedback">უკუკავშირი</string>
+  <string name="drawer_help">დახმარება</string>
   <string name="prefs_category_general">ზოგადი</string>
   <string name="prefs_category_more">უფრო მეტი</string>
+  <string name="prefs_category_security">უსაფრთხოება</string>
   <string name="prefs_accounts">ანგარიში</string>
   <string name="prefs_help">დახმარება</string>
   <string name="prefs_feedback">უკუკავშირი</string>
@@ -20,7 +23,7 @@
   <string name="auth_username">მომხმარებლის სახელი</string>
   <string name="auth_password">პაროლი</string>
   <string name="sync_string_files">ფაილები</string>
-  <string name="setup_btn_connect">დაკავშირება</string>
+  <string name="setup_btn_login">დაკავშირება</string>
   <string name="uploader_btn_upload_text">ატვირთვა</string>
   <string name="uploader_wrn_no_account_title">ანგარიში ვერ მოიძებნა</string>
   <string name="uploader_wrn_no_account_setup_btn_text">დაყენება</string>
@@ -75,9 +78,7 @@
   <string name="auth_connection_established">კავშირი დამყარდა</string>
   <string name="auth_not_configured_title">არასწორი სერვერის კონფიგურაცია</string>
   <string name="auth_unknown_error_title">აღმოჩენილია უცნობი შეცდომა!</string>
-  <string name="auth_unknown_host_title">ჰოსტი ვერ მოიძებნა</string>
   <string name="auth_incorrect_path_title">სერვერის ინსტანცია ვერ მოიძებნა</string>
-  <string name="auth_timeout_title">სერვერმა გვიპასუხა ძალიან გვიან</string>
   <string name="auth_ssl_general_error_title">შეცდომა SSL ინიციალიზაციისას</string>
   <string name="auth_bad_oc_version_title">ამოუცნობი სერვერის ვერსია</string>
   <string name="auth_wrong_connection_title">კავშირის დამყარება ვერ მოხერხდა</string>
@@ -95,7 +96,6 @@
   <string name="wait_a_moment">გთხოვთ მოითმინოთ</string>
   <string name="filedisplay_unexpected_bad_get_content">მოულოდნელი პრობლემა: გთხოვთ აირჩიოთ ფაილი სხვადასხვა აპლიკაციიდან</string>
   <string name="filedisplay_no_file_selected">ფაილი არ ყოფილა მონიშნული</string>
-  <string name="ssl_validator_header">საიტის იდენტობა ვერ დამოწმდა</string>
   <string name="ssl_validator_reason_cert_not_trusted">– სერვერის სერთიფიკატები არ არის ცნობიადი</string>
   <string name="ssl_validator_reason_cert_expired">– სერვერის სერთიფიკატი ვადაგასულია</string>
   <string name="ssl_validator_reason_cert_not_yet_valid">–სერვერის სერთიფიკატი არის დაშვებადი მომავალში</string>
@@ -117,19 +117,21 @@
   <string name="ssl_validator_label_validity_to">ვისზე:</string>
   <string name="ssl_validator_label_signature">სიგნატურა:</string>
   <string name="ssl_validator_label_signature_algorithm">ალგორითმი:</string>
-  <string name="instant_upload_path">/ეგრევე ატვირთვა</string>
   <string name="conflict_keep_both">დატოვე ორივე</string>
   <string name="activity_chooser_send_file_title">გაგზავნა</string>
   <string name="clipboard_text_copied">კოპირებულია კლიპბორდში</string>
+  <string name="network_error_socket_timeout_exception">სერვერმა გვიპასუხა ძალიან გვიან</string>
   <string name="prefs_category_accounts">ანგარიში</string>
   <string name="folder_picker_choose_button_text">არჩევა</string>
-  <string name="prefs_category_details">დეტალური ინფორმაცია</string>
   <string name="auth_host_address">სერვერის მისამართი</string>
   <string name="share_dialog_title">გაზიარება</string>
-  <string name="share_via_link_expiration_date_label">მიუთითე ვადის გასვლის დრო</string>
-  <string name="share_via_link_password_label">პაროლით დაცვა</string>
+  <string name="share_cancel_public_link_button">უარყოფა</string>
+  <string name="share_confirm_public_link_button">შენახვა</string>
+  <string name="share_via_link_expiration_date_label">ვადის გასვლის დრო</string>
+  <string name="share_via_link_password_label">პაროლი</string>
   <string name="share_search">ძებნა</string>
   <string name="share_privilege_can_edit">შეგიძლია შეცვლა</string>
   <string name="share_privilege_can_edit_create">შექმნა</string>
   <string name="share_privilege_can_edit_delete">წაშლა</string>
+  <!--Welcome to oC intro features-->
 </resources>
